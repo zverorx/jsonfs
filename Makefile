@@ -61,11 +61,11 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(HEADERS)
 
 # Remove object files
 clean:
-	rm -f $(OBJECTS)
+	rm -fr $(OBJDIR)/
 
 # Remove all generated files (objects and executable)
 distclean:
-	rm -f $(TARGET) $(OBJECTS)
+	rm -fr $(TARGET) $(OBJDIR)/
 
 # Install the executable to the target directory
 #install:
