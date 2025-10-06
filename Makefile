@@ -20,13 +20,13 @@ INCDIR = include
 OBJDIR = obj
 
 # List of source files
-SOURCES = $(SRCDIR)/jsonfs_main.c $(SRCDIR)/fuse_callbacks.c
+SOURCES = $(SRCDIR)/main.c $(SRCDIR)/fuse_callbacks.c $(SRCDIR)/jsonfs.c
 
 # List of objects files
 OBJECTS = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SOURCES))
 
 # List of header files
-HEADERS = $(INCDIR)/common.h
+HEADERS = $(INCDIR)/common.h $(INCDIR)/jsonfs.h
 
 # Compiler flags
 CFLAGS = -std=gnu99
