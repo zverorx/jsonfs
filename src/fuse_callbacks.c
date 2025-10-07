@@ -19,9 +19,10 @@
 int jsonfs_getattr(const char *path, struct stat *st,
 				   struct fuse_file_info *fi)
 {
-	(void) fi;
 	time_t now;
 	json_t *node;
+
+	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
 	struct json_private_data *pd = ctx->private_data;
@@ -57,6 +58,38 @@ int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 				   off_t offset, struct fuse_file_info *fi,
 				   enum fuse_readdir_flags flags)
 {
+	int ret_fill;
+	json_t *node;
+
+	const char *key;
+    json_t *value;
+
+	(void) offset;
+	(void) fi;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct json_private_data *pd = ctx->private_data;
+
+	ret_fill = filler(buffer, ".", NULL, 0,  FUSE_FILL_DIR_PLUS);
+	if (ret_fill) {
+		return -ENOMEM;
+	}
+
+	ret_fill = filler(buffer, "..", NULL, 0, FUSE_FILL_DIR_PLUS);
+	if (ret_fill) {
+		return -ENOMEM;
+	}
+
+	node = find_node_by_path(path, pd->root);
+	CHECK_POINTER(node, -ENOENT);
+
+	json_object_foreach(node, key, value) {
+		ret_fill = filler(buffer, key, NULL, 0, FUSE_FILL_DIR_PLUS);
+		if (ret_fill) {
+			return -ENOMEM;
+		}
+	}
+
 	return 0;
 }
 

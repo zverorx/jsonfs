@@ -3,7 +3,6 @@
  */
 
 #define FUSE_USE_VERSION 	35
-/* XXX */
 #define JSONFILE			argv[1]
 
 /* Includes */
@@ -21,7 +20,6 @@ int main(int argc, char **argv)
 	json_error_t js_error;
 	int ret;
 
-	/* TODO: Decide how to handle input, pay attention to the -o option */
 	if (argc != 3) { 
 		return EXIT_FAILURE; 
 	}
@@ -37,7 +35,6 @@ int main(int argc, char **argv)
 
 	struct fuse_operations op = jsonfs_get_fuse_op();
 
-	/* XXX */
 	char *fuse_argv[] = { argv[0], argv[2] };
 	struct fuse_args args = FUSE_ARGS_INIT(2, fuse_argv);
 

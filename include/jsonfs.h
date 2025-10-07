@@ -6,7 +6,16 @@
 #define JSONFS_H_SENTRY
 
 /**
+ * @brief Finds a JSON node by its absolute path in the tree.
  *
+ * Traverses the JSON object hierarchy starting from the given root,
+ * following the path components separated by '/'. Returns the node
+ * at the specified path, or NULL if the path is invalid or any
+ * intermediate component is not a JSON object.
+ *
+ * @param path  Absolute path (e.g., "/foo/bar"), must not be NULL.
+ * @param root  Root JSON object to start traversal from, must not be NULL.
+ * @return      Pointer to the found JSON node, or NULL on failure.
  */
 json_t *find_node_by_path(const char *path, json_t *root);
 
