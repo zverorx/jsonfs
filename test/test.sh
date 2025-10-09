@@ -7,24 +7,37 @@ mount_point="mnt"
 if [ ! -f "$exec_file" ] 
 then
 	echo "Not found $exec_file"
-	exit
+	exit 1
 fi
 
 if [ ! -f "$example_file" ]
 then
 	echo Not found $example_file
-	exit
+	exit 1
 fi
 
 mkdir -p "$mount_point"
 "$exec_file" "$example_file" "$mount_point"
 
 cd "$mount_point"
-ls -Rl 
+ls -Rl
+
+echo 
+echo "**************************************************"
+echo
+
+for file in $(find)
+do
+	if [ -f "$file" ] ; then
+		echo -n "$file: "
+		cat "$file"
+		echo
+	fi
+done
 
 sleep 1
 
 cd .. 
 fusermount3 -u "$mount_point"
 
-exit
+exit 0
