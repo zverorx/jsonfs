@@ -37,8 +37,16 @@ struct json_private_data *init_private_data(json_t *json_root, const char *path)
 
 /**
  * @brief Gives the fuse_operations structure.
- * @return struct fuse_operations with implemented callbacks.
+ * @return Struct fuse_operations with implemented callbacks.
  */
-struct fuse_operations jsonfs_get_fuse_op(void);
+struct fuse_operations get_fuse_op(void);
+
+/**
+ * @brief  Prepares arguments for fuse_main().
+ * @param argc Argument count from main().
+ * @param argv Argument vector from main().
+ * @return A struct with adjusted argc/argv; caller must free fuse_argv.
+ */
+struct private_args get_fuse_args(int argc, char **argv);
 
 #endif /* JSONFS_H_SENTRY */

@@ -23,6 +23,8 @@ extern int jsonfs_read(const char *path, char *buffer, size_t size,
 				off_t offset, struct fuse_file_info *fi);
 extern void jsonfs_destroy(void *userdata);
 
+
+
 struct json_private_data *init_private_data(json_t *json_root, const char *path)
 {
 	CHECK_POINTER(json_root, NULL);
@@ -76,7 +78,7 @@ exit_fail:
 	return NULL;
 }
 
-struct fuse_operations jsonfs_get_fuse_op(void)
+struct fuse_operations get_fuse_op(void)
 {
 	struct fuse_operations op = {
 		.getattr = jsonfs_getattr,
@@ -86,4 +88,20 @@ struct fuse_operations jsonfs_get_fuse_op(void)
 	};
 
 	return op;
+}
+
+struct private_args get_fuse_args(int argc, char **argv)
+{
+	struct private_args args;
+	args.fuse_argc = argc - 1;
+	args.fuse_argv = calloc(args.fuse_argc, sizeof(char *));
+	if (!args.fuse_argv) {
+		exit(EXIT_FAILURE);
+	}
+	args.fuse_argv[0] = argv[0];
+	for (int i = 2; i < argc; i++) {
+		args.fuse_argv[i - 1] = argv[i];
+	}
+
+	return args;
 }

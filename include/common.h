@@ -41,4 +41,13 @@ struct json_private_data {
 	char *path_to_json_file;	/**< Path to the source JSON file */
 };
 
+/**
+ * @struct private_args
+ * @brief Arguments for fuse_main().
+ */
+struct private_args {
+	char **fuse_argv;	/**< argv for fuse_main() */
+	int fuse_argc;		/**< argc for fuse_main() */
+};
+
 #endif /* COMMON_H_SENTRY */
