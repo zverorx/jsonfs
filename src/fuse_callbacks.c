@@ -1,5 +1,9 @@
 /**
- * @file fuse_callbacks.c
+ * @file
+ * @brief FUSE filesystem operation handlers.
+ *
+ * Implements callback functions for FUSE filesystem operations,
+ * including destroy, getattr, readdir, and read.
  */
 
 #define FUSE_USE_VERSION 35
@@ -40,7 +44,7 @@ int jsonfs_getattr(const char *path, struct stat *st,
 
 	if (json_is_object(node)) {
 		st->st_mode = S_IFDIR | 0555;
-		st->st_nlink = 2;
+		st->st_nlink = 2; /* TODO: + number of child directories */
 	}
 	else {
 		st->st_mode = S_IFREG | 0444;

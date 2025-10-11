@@ -1,5 +1,6 @@
 /**
- * @file common.h
+ * @file
+ * @brief Common types, macros, and private data for JSONFS.
  */
 
 #ifndef COMMON_H_SENTRY
@@ -32,6 +33,7 @@
 /* ================================= */
 
 /**
+ * @struct json_private_data
  * @brief Private data structure passed to FUSE callbacks.
  */
 struct json_private_data {
@@ -39,4 +41,4 @@ struct json_private_data {
 	char *path_to_json_file;	/**< Path to the source JSON file */
 };
 
-#endif
+#endif /* COMMON_H_SENTRY */

@@ -1,5 +1,8 @@
 /**
- * @file jsonfs_main.c
+ * @file
+ * @brief Entry point of the JSONFS.
+ *
+ * Processes command line parameters and calls fuse_main().
  */
 
 #define FUSE_USE_VERSION 	35

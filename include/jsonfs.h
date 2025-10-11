@@ -1,5 +1,8 @@
 /**
- * @file jsonfs.h
+ * @file
+ * @brief JSONFS filesystem logic interface.
+ *
+ * Contains declarations of functions from jsonfs.c and specifications for them.
  */
 
 #ifndef JSONFS_H_SENTRY

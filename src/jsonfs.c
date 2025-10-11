@@ -1,5 +1,8 @@
 /**
- * @file jsonfs.c
+ * @file 
+ * @brief Contains common functions for JSONFS.
+ *
+ * Function declarations and specifications can be found in jsonfs.h.
  */
 
 #define FUSE_USE_VERSION 35
