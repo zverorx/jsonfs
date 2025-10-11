@@ -89,6 +89,8 @@ help:
 	@echo "make clean - Remove all temporary files"
 	@echo "make distclean - Remove all generated files"
 	@echo "make install - Install the executable file to $(PREFIX)"
-	@echo "make uninstall - Remove the installed executable file"
+	@echo "make uninstall - Remove the installed executable file from $(PREFIX)"
+	@echo ""
+	@echo "To change the installation and removal path, use PREFIX="
 
 .PHONY: all clean distclean help #install uninstall
