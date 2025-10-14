@@ -16,6 +16,9 @@ SRCDIR = src
 # Include directory
 INCDIR = include
 
+# Binary directory
+BINDIR = bin
+
 # Object directory
 OBJDIR = obj
 
@@ -52,7 +55,8 @@ all: $(TARGET)
 
 # Link object files into the final executable
 $(TARGET):$(OBJECTS)
-	$(CC) $(CFLAGS) $^ -o $@ $(PKG_CONFIG_LIBS) 
+	@mkdir -p $(BINDIR)
+	$(CC) $(CFLAGS) $^ -o $(BINDIR)/$@ $(PKG_CONFIG_LIBS) 
 
 # Compile .c files into .o files
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(HEADERS)
@@ -65,13 +69,13 @@ clean:
 
 # Remove all generated files (objects and executable)
 distclean:
-	rm -fr $(TARGET) $(OBJDIR)/
+	rm -fr $(BINDIR)/ $(OBJDIR)/
 
 # Install the executable to the target directory
 #install:
 #	install -d $(PREFIX)
-#	install -m 755 ./$(TARGET) $(PREFIX)
-#	@echo "$(TARGET) installed to $(PREFIX)"
+#	install -m 755 ./$(BINDIR)/$(TARGET) $(PREFIX)
+#	@echo "$(BINDIR)/$(TARGET) installed to $(PREFIX)"
 
 # Remove the installed executable
 #uninstall:

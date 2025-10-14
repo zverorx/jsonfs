@@ -4,7 +4,7 @@
 # It must be run from the directory in which it is located, as paths are relative. 
 # The test displays the names of files and directories in the file system, as well as their contents.
 
-exec_file="../jsonfs"
+exec_file="../bin/jsonfs"
 example_file="example.json"
 mount_point="mnt"
 
