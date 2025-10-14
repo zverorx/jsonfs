@@ -27,9 +27,17 @@ make help
 >WARNING: The install and uninstall targets don't work yet.
 
 ## Usage
+
+Mounting:
 ```
 ./jsonfs <json_file> <mount_point> [ FUSE options... ]
 ```
+
+Unmounting:
+```
+fusermount -u <mount_point>
+```
+
 ## Example
 If the original JSON file looks like this:
 ```
