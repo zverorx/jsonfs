@@ -64,7 +64,7 @@ int jsonfs_getattr(const char *path, struct stat *st,
 
 	if (json_is_object(node)) {
 		st->st_mode = S_IFDIR | 0555;
-		st->st_nlink = 2; /* TODO: + number of child directories */
+		st->st_nlink = 2 + count_subdirs(node);
 	}
 	else {
 		st->st_mode = S_IFREG | 0444;
