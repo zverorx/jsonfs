@@ -69,4 +69,12 @@ struct fuse_operations get_fuse_op(void);
  */
 struct private_args get_fuse_args(int argc, char **argv);
 
+/**
+ * @brief Counts subdirectories in a JSON directory node.
+ *        A subdirectory is a child JSON object.
+ * @param obj JSON object representing a directory (must be non-NULL).
+ * @return Number of child objects (subdirectories).
+ */
+int count_subdirs(json_t *obj);
+
 #endif /* JSONFS_H_SENTRY */

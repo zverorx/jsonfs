@@ -125,3 +125,22 @@ struct private_args get_fuse_args(int argc, char **argv)
 
 	return args;
 }
+
+int count_subdirs(json_t *obj)
+{
+	int count = 0;
+	const char *key = NULL;
+	json_t *value = NULL;
+
+	if (!obj || !json_is_object(obj)) {
+		return 0;
+	}
+
+	json_object_foreach(obj, key, value) {
+		if (json_is_object(value)) {
+			count++;
+		}
+	}
+
+	return count;
+}
