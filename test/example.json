@@ -6,6 +6,12 @@
   "nil": null,
   "arr": [1, "x", false],
   "obj": {
-    "key": "value"
+    "key": "value",
+	"obj1": { 
+		"key1": "value1" 
+	},
+	"obj2": {
+		"key2": "value2" 
+	}
   }
 }
