@@ -69,7 +69,7 @@ int jsonfs_getattr(const char *path, struct stat *st,
 	else {
 		st->st_mode = S_IFREG | 0444;
 		st->st_nlink = 1;
-		char *str = json_dumps(node, JSON_ENSURE_ASCII | JSON_ENCODE_ANY);
+		char *str = json_dumps(node, JSON_ENSURE_ASCII | JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
 		st->st_size = str ? strlen(str) : 0;
 		free(str);
 	}
@@ -132,7 +132,7 @@ int jsonfs_read(const char *path, char *buffer, size_t size,
 	node = find_node_by_path(path, pd->root);
 	CHECK_POINTER(node, -ENOENT);
 
-	text = json_dumps(node, JSON_ENSURE_ASCII | JSON_ENCODE_ANY);
+	text = json_dumps(node, JSON_ENSURE_ASCII | JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
 	CHECK_POINTER(text, -ENOMEM);
 
 	text_len = strlen(text);
