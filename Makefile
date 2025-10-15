@@ -71,16 +71,14 @@ clean:
 distclean:
 	rm -fr $(BINDIR)/ $(OBJDIR)/
 
-# Install the executable to the target directory
-#install:
-#	install -d $(PREFIX)
-#	install -m 755 ./$(BINDIR)/$(TARGET) $(PREFIX)
-#	@echo "$(BINDIR)/$(TARGET) installed to $(PREFIX)"
+#Install the executable to the target directory
+install:
+	install -d $(PREFIX)
+	install -m 755 ./$(BINDIR)/$(TARGET) $(PREFIX)
 
 # Remove the installed executable
-#uninstall:
-#	rm -f $(PREFIX)/$(TARGET)
-#	@echo "$(TARGET) removed from $(PREFIX)"
+uninstall:
+	rm $(PREFIX)/$(TARGET)
 
 # Show help message
 help:
@@ -97,4 +95,4 @@ help:
 	@echo ""
 	@echo "To change the installation and removal path, use PREFIX="
 
-.PHONY: all clean distclean help #install uninstall
+.PHONY: all clean distclean help install uninstall
