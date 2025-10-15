@@ -7,11 +7,10 @@
   "arr": [1, "x", false],
   "obj": {
     "key": "value",
-	"obj1": { 
-		"key1": "value1" 
+	"empty_obj": { 
 	},
-	"obj2": {
-		"key2": "value2" 
+	"nested_obj": {
+		"empty_str": ""
 	}
   }
 }
