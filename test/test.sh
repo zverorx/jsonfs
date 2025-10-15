@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# This script is designed for testing the file system. 
-# It must be run from the directory in which it is located, as paths are relative. 
-# The test displays the names of files and directories in the file system, as well as their contents.
+# This script is designed for testing jsonfs. 
+# The test displays file and directory names and their attributes and contents.
 
-exec_file="../bin/jsonfs"
-example_file="example.json"
-mount_point="mnt"
+test_dir="$(cd $(dirname $BASH_SOURCE[0]) && pwd)"
+exec_file="$test_dir/../bin/jsonfs"
+example_file="$test_dir/example.json"
+mount_point="$test_dir/mnt"
 
 if [ ! -f "$exec_file" ] 
 then
@@ -39,7 +39,7 @@ cd "$mount_point"
 echo -e "\e[31m**************************************************\e[0m"
 echo 
 echo -e "\e[32m**************************************************\e[0m"
-ls -Rl
+ls -Rla
 echo -e "\e[32m**************************************************\e[0m"
 echo
 echo -e "\e[34m**************************************************\e[0m"
