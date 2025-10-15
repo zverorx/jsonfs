@@ -1,36 +1,44 @@
 # jsonfs
-A file system that allows you to organize a json file as a tree of directories and files.
->The project is under development.
->The file system is currently read-only.
+A file system that represents a JSON file as a directory tree, 
+where JSON objects become directories, and all other JSON values become 
+files containing the string representation of their values. 
+
+>The file system is read-only.
 
 ---
 
 ## Prerequisites
-Check for the following:
+
+Check for the following programs:
+
+### Required:
 * gcc
 * make
 * libjansson-dev
 * libfuse3-dev
+>P.S. To install libjansson-dev and libfuse3-dev, use your system's package manager.
 
-To install, use your package manager.
+### Optional:
+* curl
+* unzip
 
-## Compilation
+## Compilation and installation
 Go to the source directory, and run:
 ```
-make
+make && sudo make install
 ```
 
 To find out more about Makefile features, run:
 ```
 make help
 ```
->WARNING: The install and uninstall targets don't work yet.
+
 
 ## Usage
 
 Mounting:
 ```
-./jsonfs <json_file> <mount_point> [ FUSE options... ]
+jsonfs <json_file> <mount_point> [ FUSE options... ]
 ```
 
 Unmounting:
@@ -49,27 +57,36 @@ If the original JSON file looks like this:
   "nil": null,
   "arr": [1, "x", false],
   "obj": {
-    "key": "value"
+    "key": "value",
+	"empty_obj": { 
+	},
+	"nested_obj": {
+		"empty_str": ""
+	}
   }
 }
 ```
 then the mount point will contain the following files and directories:
  ```
- .
+.
 ├── arr
 ├── bool
 ├── float
 ├── int
 ├── nil
 ├── obj
-│   └── key
+│   ├── empty_obj
+│   ├── key
+│   └── nested_obj
+│       └── empty_str
 └── str
+
  ```
-Each file contains the string representation of its JSON value (e.g. cat tmp/int -> 42) 
-To check functionality, you can use a test script. To do this, review the README.md file in the test directory at the project root.
+Each file contains the string representation of its JSON value (e.g. cat obj/key -> "value") 
+To check functionality, you can use a test script. To do this, review the README.md file in the test directory at the project.
 
 ## License
-This project is licensed under the GPLv3 license. See the LICENSE file for more details.
+This project is licensed under the GPLv3. See the LICENSE file for more details.
 
 ## Feedback
 To contact the developer, you can email zveror1806@gmail.com
