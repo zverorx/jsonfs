@@ -3,10 +3,17 @@
 # This script is designed for testing jsonfs. 
 # The test displays file and directory names and their attributes and contents.
 
+set -e
+
 test_dir="$(cd $(dirname $BASH_SOURCE[0]) && pwd)"
 exec_file="$test_dir/../bin/jsonfs"
-example_file="$test_dir/example.json"
+json_file="$1"
 mount_point="$test_dir/mnt"
+
+if [ -z "$json_file" ]
+then
+	json_file="$test_dir/example1.json"
+fi
 
 if [ ! -f "$exec_file" ] 
 then
@@ -14,16 +21,15 @@ then
 	exit 1
 fi
 
-if [ ! -f "$example_file" ]
+if [ ! -f "$json_file" ]
 then
-	echo "Not found $example_file" >&2
+	echo "Not found $json_file" >&2
 	exit 1
 fi
 
 ########## Mounting ##########
-
 mkdir -p "$mount_point"
-if ! "$exec_file" "$example_file" "$mount_point" ; then
+if ! "$exec_file" "$json_file" "$mount_point" ; then
 	rmdir "$mount_point"
 	echo "Failed to mount $exec_file" >&2
 	exit 1
@@ -33,10 +39,10 @@ fi
 ########## Test start ##########
 
 echo -e "\e[31m**************************************************\e[0m"
-echo "$example_file:"
-cat "$example_file"
-cd "$mount_point"
+echo "$json_file:"
+cat "$json_file"
 echo -e "\e[31m**************************************************\e[0m"
+cd "$mount_point"
 echo 
 echo -e "\e[32m**************************************************\e[0m"
 ls -Rla
