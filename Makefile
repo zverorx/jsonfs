@@ -2,7 +2,7 @@
 CC ?= gcc
 
 # Build mode: 'debug' or 'release' (default: debug)
-BUILD ?= debug
+BUILD ?= release
 
 # Installation directory (default: /usr/local/bin/)
 PREFIX ?= /usr/local/bin/
