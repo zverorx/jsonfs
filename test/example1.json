@@ -1,0 +1,19 @@
+{
+  "english_string": "hello",
+  "русская_строка": "привет",
+  "cadena_española": "hola",
+  "中国弦乐": "嗨。",
+  "int": 42,
+  "float": 3.14,
+  "bool": true,
+  "nil": null,
+  "arr": [1, "x", false],
+  "obj": {
+    "key": "value",
+	"empty_obj": { 
+	},
+	"nested_obj": {
+		"empty_str": ""
+	}
+  }
+}
