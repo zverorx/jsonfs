@@ -77,4 +77,15 @@ struct private_args get_fuse_args(int argc, char **argv);
  */
 int count_subdirs(json_t *obj);
 
+/**
+ * @brief Converts non-object JSON root to an object.
+ * @param root JSON value (object, array, or scalar).
+ * @return New independent JSON object:
+ *         - copy of root if it's an object,
+ *         - {"0":..., "1":...} if array,
+ *         - {"value": root} if scalar.
+ *         Caller must json_decref() the result.
+ */
+json_t *convert_to_obj(json_t *root);
+
 #endif /* JSONFS_H_SENTRY */

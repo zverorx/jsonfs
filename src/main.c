@@ -39,7 +39,8 @@
 int main(int argc, char **argv)
 {
 	json_t *root = NULL;
-	json_error_t js_error;
+	json_t *correct_root = NULL;
+	json_error_t json_error;
 	const char *json_file = NULL;
 	int ret;
 
@@ -49,12 +50,16 @@ int main(int argc, char **argv)
 
 	json_file = argv[1];
 
-	root = json_load_file(json_file, 0, &js_error);
+	root = json_load_file(json_file, JSON_DECODE_ANY, &json_error);
 	CHECK_POINTER(root, EXIT_FAILURE);
 
-	struct json_private_data *pd = init_private_data(root, json_file);
+	correct_root = convert_to_obj(root);
+	CHECK_POINTER(correct_root, EXIT_FAILURE);
+	json_decref(root);
+
+	struct json_private_data *pd = init_private_data(correct_root, json_file);
 	if (!pd) {
-		json_decref(root);
+		json_decref(correct_root);
 		return EXIT_FAILURE;
 	}
 

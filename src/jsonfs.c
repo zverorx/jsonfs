@@ -144,3 +144,37 @@ int count_subdirs(json_t *obj)
 
 	return count;
 }
+
+json_t *convert_to_obj(json_t *root)
+{
+	json_t *obj = NULL;
+	json_t *value = NULL;
+	json_t *json_copy_ret = NULL;
+	size_t i;
+	
+	CHECK_POINTER(root, NULL);
+	obj = json_object();
+	CHECK_POINTER(obj, NULL);
+
+	if (json_is_object(root)) {
+		obj = json_copy(root);
+		CHECK_POINTER(obj, NULL);
+	}
+	else if (json_is_array(root)) {
+		json_array_foreach(root, i, value) {
+			char key[32];
+			snprintf(key, sizeof(key), "%zu", i);
+
+			json_copy_ret = json_copy(value);
+			CHECK_POINTER(json_copy_ret, NULL);
+			json_object_set_new(obj, key, json_copy_ret);
+		}
+	} 
+	else {
+		json_copy_ret = json_copy(root);
+		CHECK_POINTER(json_copy_ret, NULL);
+		json_object_set_new(obj, "value", json_copy_ret);
+    }
+
+	return obj;
+}
