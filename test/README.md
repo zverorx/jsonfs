@@ -1,20 +1,21 @@
 # Test
-The script  test.sh  mounts the example.json  located  in the jsonfs/test/.
-The script  also  creates a mount  point  in  it,  and  then  deletes  it  after  unmounting.
-Inside, the commands  'ls  -lRa'  and  'cat' are executed  to  display the attributes  and  contents of the files.
+The script test.sh mounts the JSON file located in the test/.
+The script also creates a mount point in it, and then deletes it after unmounting.
+Inside, the commands `ls  -lRa` and `cat` are executed to display the attributes and contents of the files.
 
 ---
 
 ## Usage
 ```
-./test.sh
+./test.sh [ JSON file ]
 ```
-The script takes no arguments and uses hardcoded paths.
+You can pass a JSON file to the parameters, if you do not do this, it will mount the default file from test/.
 It can be called from anywhere.
 >WARNING: You must compile jsonfs before using it (see README.md at the root of the project).
 
 ## Example
-Script execution:
+
+### Script execution
 ```
 **************************************************
 /home/user/prog/jsonfs/test/example.json:
@@ -81,12 +82,18 @@ dr-xr-xr-x 4 user user 0 Oct 15 19:17 ..
 **************************************************
 ```
 
-Explanation:
+### Explanation
 
 - The first block (red in the terminal) shows the contents of the example.json file.
 
-- The second block (green in the terminal) shows the result of the 'ls -lRa' command.
+- The second block (green in the terminal) shows the result of the `ls -lRa` command.
 
-- The third block (blue in the terminal) shows the result of 'cat',
-where the files from the 'find' command output are passed as parameters.
+- The third block (blue in the terminal) shows the result of `cat`,
+where the files from the `find` command output are passed as parameters.
 
+### Examples of JSON files
+
+The test directory also contains examples of JSON files:
+* ex_obj.json - file with an object at its root (used by default for the test).
+* ex_arr.json - file with an array of objects at its root.
+* ex_scal.json - file with a scalar value at its root.

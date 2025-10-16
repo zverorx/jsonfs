@@ -12,7 +12,7 @@ mount_point="$test_dir/mnt"
 
 if [ -z "$json_file" ]
 then
-	json_file="$test_dir/example1.json"
+	json_file="$test_dir/ex_obj.json"
 fi
 
 if [ ! -f "$exec_file" ] 
