@@ -1,7 +1,7 @@
 # Compiler to use (default: gcc)
 CC ?= gcc
 
-# Build mode: 'debug' or 'release' (default: debug)
+# Build mode: 'debug' or 'release' (default: release)
 BUILD ?= release
 
 # Installation directory (default: /usr/local/bin/)
