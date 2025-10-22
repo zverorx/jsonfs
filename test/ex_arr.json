@@ -26,27 +26,9 @@
     "float": 2.71,
     "bool": false,
     "nil": null,
-    "arr": ["a", "b", "c"],
+    "arr": [{"symb_a":"a"}, {"symb_b":"b"}, {"symb_c":"c"}],
     "obj": {
       "key": "value1",
-      "empty_obj": {},
-      "nested_obj": {
-        "empty_str": ""
-      }
-    }
-  },
-  {
-    "english_string": "love",
-    "русская_строка": "любовь",
-    "cadena_española": "amor",
-    "中国弦乐": "爱",
-    "int": 142,
-    "float": 5.85,
-    "bool": true,
-    "nil": null,
-    "arr": [1, "x", false],
-    "obj": {
-      "key": "value2",
       "empty_obj": {},
       "nested_obj": {
         "empty_str": ""
