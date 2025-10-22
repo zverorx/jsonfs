@@ -145,11 +145,13 @@ int count_subdirs(json_t *obj)
 	return count;
 }
 
-json_t *convert_to_obj(json_t *root)
+json_t *convert_to_obj(json_t *root, int is_root)
 {
 	json_t *obj = NULL;
 	json_t *value = NULL;
+	const char *key = NULL;
 	json_t *json_copy_ret = NULL;
+	json_t *converted_val = NULL;
 	size_t i;
 	
 	CHECK_POINTER(root, NULL);
@@ -157,23 +159,34 @@ json_t *convert_to_obj(json_t *root)
 	CHECK_POINTER(obj, NULL);
 
 	if (json_is_object(root)) {
-		obj = json_copy(root);
-		CHECK_POINTER(obj, NULL);
+        json_object_foreach(root, key, value) {
+            converted_val = convert_to_obj(value, 0);
+            CHECK_POINTER(converted_val, NULL);
+            json_object_set_new(obj, key, converted_val);
+        }
 	}
 	else if (json_is_array(root)) {
-		json_array_foreach(root, i, value) {
-			char key[32];
-			snprintf(key, sizeof(key), "%zu", i);
+		value = NULL;
+		converted_val = NULL;
+        json_array_foreach(root, i, value) {
+            char key[32];
+            snprintf(key, sizeof(key), "*%zu", i);
 
-			json_copy_ret = json_copy(value);
-			CHECK_POINTER(json_copy_ret, NULL);
-			json_object_set_new(obj, key, json_copy_ret);
-		}
+            converted_val = convert_to_obj(value, 0);
+            CHECK_POINTER(converted_val, NULL);
+            json_object_set_new(obj, key, converted_val);
+        }
 	} 
 	else {
-		json_copy_ret = json_copy(root);
-		CHECK_POINTER(json_copy_ret, NULL);
-		json_object_set_new(obj, "value", json_copy_ret);
+		if (is_root) {
+			json_copy_ret = json_copy(root);
+			CHECK_POINTER(json_copy_ret, NULL);
+			json_object_set_new(obj, "*scalar", json_copy_ret);
+		}
+		else {
+			obj = json_copy(root);
+			CHECK_POINTER(obj, NULL);
+		}
     }
 
 	return obj;

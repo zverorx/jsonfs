@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 	root = json_load_file(json_file, JSON_DECODE_ANY, &json_error);
 	CHECK_POINTER(root, EXIT_FAILURE);
 
-	correct_root = convert_to_obj(root);
+	correct_root = convert_to_obj(root, 1);
 	CHECK_POINTER(correct_root, EXIT_FAILURE);
 	json_decref(root);
 

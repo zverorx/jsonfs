@@ -78,14 +78,18 @@ struct private_args get_fuse_args(int argc, char **argv);
 int count_subdirs(json_t *obj);
 
 /**
- * @brief Converts non-object JSON root to an object.
+ * @brief Converts JSON to object-only representation for filesystem.
  * @param root JSON value (object, array, or scalar).
+ * @param is_root Flag indicating if this is the root level (1) or nested (0).
  * @return New independent JSON object:
- *         - copy of root if it's an object,
- *         - {"0":..., "1":...} if array,
- *         - {"value": root} if scalar.
+ *         - Objects are recursively processed preserving keys
+ *         - Arrays become {"*0":..., "*1":...} with asterisk-prefixed keys
+ *         - Scalars at root become {"*scalar": value}  
+ *         - Nested scalars are copied as-is
  *         Caller must json_decref() the result.
+ * @note Asterisk prefixes provide unambiguous identification of
+ *       converted arrays (*0, *1...) and root scalars (*scalar).
  */
-json_t *convert_to_obj(json_t *root);
+json_t *convert_to_obj(json_t *root, int is_root);
 
 #endif /* JSONFS_H_SENTRY */
