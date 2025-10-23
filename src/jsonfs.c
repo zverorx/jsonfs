@@ -191,3 +191,41 @@ json_t *convert_to_obj(json_t *root, int is_root)
 
 	return obj;
 }
+
+int is_special_file(const char *path)
+{
+	if (strcmp("/.status", path) == 0 ||
+		strcmp("/.save", path) == 0) {
+			return 1;
+	}
+	return 0;
+}
+
+void handle_special_file(const char *path, struct stat *st)
+{
+	if (strcmp("/.status", path) == 0) {
+		st->st_mode = S_IFREG | 0444;
+		st->st_nlink = 1;
+		st->st_size = 1; /* FIXME */
+	}
+	else if (strcmp("/.save", path) == 0) {
+		st->st_mode = S_IFREG | 0666;
+		st->st_nlink = 1;
+		st->st_size = 1;
+	}
+}
+
+void handle_json_file(json_t *node, struct stat *st)
+{
+	if (json_is_object(node)) {
+		st->st_mode = S_IFDIR | 0555;
+		st->st_nlink = 2 + count_subdirs(node);
+	}
+	else {
+		st->st_mode = S_IFREG | 0444;
+		st->st_nlink = 1;
+		char *str = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
+		st->st_size = str ? strlen(str) : 0;
+		free(str);
+	}
+}

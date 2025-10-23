@@ -92,4 +92,34 @@ int count_subdirs(json_t *obj);
  */
 json_t *convert_to_obj(json_t *root, int is_root);
 
+/**
+ * @brief Checks if the given path corresponds to a special service file.
+ * 
+ * Special files are virtual files used for filesystem control operations:
+ * - /.status - shows filesystem status
+ * - /.save - triggers saving changes
+ * 
+ * @param path File path to check (must be absolute path starting with '/').
+ * @return 1 if the path is a special file, 0 otherwise.
+ * 
+ * @see handle_special_file()
+ */
+int is_special_file(const char *path);
+
+/**
+ * @brief Sets attributes for special files. Used in getattr.
+ * 
+ * @param path Special file path.
+ * @param stat Structure to fill with file attributes.
+ */
+void handle_special_file(const char *path, struct stat *st);
+
+/**
+ * @brief Sets attributes for JSON nodes. Used in getattr.
+ * 
+ * @param node JSON node to process.
+ * @param stat Structure to fill with file attributes.
+ */
+void handle_json_file(json_t *node, struct stat *st);
+
 #endif /* JSONFS_H_SENTRY */

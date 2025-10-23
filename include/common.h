@@ -48,6 +48,22 @@
 		}								\
 	} while(0)
 
+/**
+ * @def FILL_OR_RETURN 
+ * @brief Calls filler for json_readdir.
+ * 
+ * @param BUFF void *buff from fuse_fill_dir_t.
+ * @param NAME const char *name from fuse_fill_dir_t.
+ *
+ * @return Returns -ENOMEM if filler fails. 
+ */
+#define FILL_OR_RETURN(BUFF, NAME)								\
+	do {														\
+		if (filler(BUFF, NAME, NULL, 0, FUSE_FILL_DIR_PLUS)) {	\
+			return -ENOMEM;										\
+		}														\
+	} while(0)
+
 /* ================================= */
 /*            Structures             */
 /* ================================= */

@@ -47,9 +47,6 @@ int jsonfs_getattr(const char *path, struct stat *st,
 
 	(void) fi;
 
-	struct fuse_context *ctx = fuse_get_context();
-	struct json_private_data *pd = ctx->private_data;
-
 	memset(st, 0, sizeof(struct stat));
 	now = time(NULL);
 
@@ -59,19 +56,17 @@ int jsonfs_getattr(const char *path, struct stat *st,
 	st->st_mtime = now;
 	st->st_ctime = now;
 
-	node = find_node_by_path(path, pd->root);
-	CHECK_POINTER(node, -ENOENT);
-
-	if (json_is_object(node)) {
-		st->st_mode = S_IFDIR | 0555;
-		st->st_nlink = 2 + count_subdirs(node);
+	if (is_special_file(path)) {
+		handle_special_file(path, st);
 	}
 	else {
-		st->st_mode = S_IFREG | 0444;
-		st->st_nlink = 1;
-		char *str = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
-		st->st_size = str ? strlen(str) : 0;
-		free(str);
+		struct fuse_context *ctx = fuse_get_context();
+		struct json_private_data *pd = ctx->private_data;
+
+		node = find_node_by_path(path, pd->root);
+		CHECK_POINTER(node, -ENOENT);
+
+		handle_json_file(node, st);
 	}
 
 	return 0;
@@ -81,9 +76,7 @@ int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 				   off_t offset, struct fuse_file_info *fi,
 				   enum fuse_readdir_flags flags)
 {
-	int ret_fill;
 	json_t *node;
-
 	const char *key;
     json_t *value;
 
@@ -93,24 +86,23 @@ int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 	struct fuse_context *ctx = fuse_get_context();
 	struct json_private_data *pd = ctx->private_data;
 
-	ret_fill = filler(buffer, ".", NULL, 0,  FUSE_FILL_DIR_PLUS);
-	if (ret_fill) {
-		return -ENOMEM;
-	}
-
-	ret_fill = filler(buffer, "..", NULL, 0, FUSE_FILL_DIR_PLUS);
-	if (ret_fill) {
-		return -ENOMEM;
-	}
+	FILL_OR_RETURN(buffer, ".");
+	FILL_OR_RETURN(buffer, "..");
 
 	node = find_node_by_path(path, pd->root);
 	CHECK_POINTER(node, -ENOENT);
 
+	if (!json_is_object(node)) {
+		return -ENOTDIR;
+	}
+
 	json_object_foreach(node, key, value) {
-		ret_fill = filler(buffer, key, NULL, 0, FUSE_FILL_DIR_PLUS);
-		if (ret_fill) {
-			return -ENOMEM;
-		}
+		FILL_OR_RETURN(buffer, key);
+	}
+
+	if (strcmp("/", path) == 0) {
+		FILL_OR_RETURN(buffer, ".status");
+		FILL_OR_RETURN(buffer, ".save");
 	}
 
 	return 0;
