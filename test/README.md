@@ -1,38 +1,38 @@
 # Test
-The script test.sh mounts the JSON file located in the test/.
-The script also creates a mount point in it, and then deletes it after unmounting.
-Inside, the commands `ls  -lRa` and `cat` are executed to display the attributes and contents of the files.
 
+`test.sh` automatically checks JSONFS by:
+
+- Mounting the JSON file
+- Running `ls -Rla` and `cat` to check the structure and content  
+- Cleaning the mount point after testing
+- Supports color-coded output parameters
 ---
 
 ## Usage
 ```
-./test.sh [ JSON file ]
+./test.sh <json_file> [rgb] 
 ```
-You can pass a JSON file to the parameters, if you do not do this, it will mount the default file from test/.
-It can be called from anywhere.
->WARNING: You must compile jsonfs before using it (see README.md at the root of the project).
+Options:
+- r - output of the first block (red), needed to demonstrate the contents of the original JSON file
+- g - output of the second block (green), needed to demonstrate the structure of the FS
+- b - output of the third block (blue), needed to demonstrate the contents of the FS files
+
+>NOTE: You must compile jsonfs before using it (see README.md at the root of the project).
 
 ## Example
 
 ### Script execution
 ```
 **************************************************
-/home/user/prog/jsonfs/test/example.json:
+/home/user/example.json:
 {
-  "str": "hello",
-  "int": 42,
-  "float": 3.14,
-  "bool": true,
-  "nil": null,
-  "arr": [1, "x", false],
-  "obj": {
-    "key": "value",
-	"empty_obj": { 
-	},
-	"nested_obj": {
-		"empty_str": ""
-	}
+  "user": "Ivan Petrov", 
+  "interests": ["photography", "cooking", "skiing"],
+  "phone": null,
+  "profile": {
+    "city": "Saint Petersburg",
+    "street": "Nevsky Prospect",
+    "apartment": 45
   }
 }
 **************************************************
@@ -40,46 +40,41 @@ It can be called from anywhere.
 **************************************************
 .:
 total 4
-dr-xr-xr-x 3 user user    0 Oct 15 19:17 .
-drwxr-xr-x 3 user user 4096 Oct 15 19:17 ..
--r--r--r-- 1 user user   15 Oct 15 19:17 arr
--r--r--r-- 1 user user    4 Oct 15 19:17 bool
--r--r--r-- 1 user user    4 Oct 15 19:17 float
--r--r--r-- 1 user user    2 Oct 15 19:17 int
--r--r--r-- 1 user user    4 Oct 15 19:17 nil
-dr-xr-xr-x 4 user user    0 Oct 15 19:17 obj
--r--r--r-- 1 user user    7 Oct 15 19:17 str
+dr-xr-xr-x 4 user user    0 Oct 26 00:52 .
+drwxr-xr-x 3 user user 4096 Oct 26 00:52 ..
+dr-xr-xr-x 2 user user    0 Oct 26 00:52 interests
+-r--r--r-- 1 user user    4 Oct 26 00:52 phone
+dr-xr-xr-x 2 user user    0 Oct 26 00:52 profile
+-r--r--r-- 1 user user   13 Oct 26 00:52 user
 
-./obj:
+./interests:
 total 0
-dr-xr-xr-x 4 user user 0 Oct 15 19:17 .
-dr-xr-xr-x 3 user user 0 Oct 15 19:17 ..
-dr-xr-xr-x 2 user user 0 Oct 15 19:17 empty_obj
--r--r--r-- 1 user user 7 Oct 15 19:17 key
-dr-xr-xr-x 2 user user 0 Oct 15 19:17 nested_obj
+dr-xr-xr-x 2 user user  0 Oct 26 00:52  .
+dr-xr-xr-x 4 user user  0 Oct 26 00:52  ..
+-r--r--r-- 1 user user 13 Oct 26 00:52 '_$0'
+-r--r--r-- 1 user user  9 Oct 26 00:52 '_$1'
+-r--r--r-- 1 user user  8 Oct 26 00:52 '_$2'
 
-./obj/empty_obj:
+./profile:
 total 0
-dr-xr-xr-x 2 user user 0 Oct 15 19:17 .
-dr-xr-xr-x 4 user user 0 Oct 15 19:17 ..
-
-./obj/nested_obj:
-total 0
-dr-xr-xr-x 2 user user 0 Oct 15 19:17 .
-dr-xr-xr-x 4 user user 0 Oct 15 19:17 ..
--r--r--r-- 1 user user 2 Oct 15 19:17 empty_str
+dr-xr-xr-x 2 user user  0 Oct 26 00:52 .
+dr-xr-xr-x 4 user user  0 Oct 26 00:52 ..
+-r--r--r-- 1 user user  2 Oct 26 00:52 apartment
+-r--r--r-- 1 user user 18 Oct 26 00:52 city
+-r--r--r-- 1 user user 17 Oct 26 00:52 street
 **************************************************
 
 **************************************************
-./str: "hello"
-./int: 42
-./float: 3.14
-./bool: true
-./nil: null
-./arr: [1, "x", false]
-./obj/key: "value"
-./obj/nested_obj/empty_str: ""
+./user: "Ivan Petrov"
+./interests/_$0: "photography"
+./interests/_$1: "cooking"
+./interests/_$2: "skiing"
+./phone: null
+./profile/city: "Saint Petersburg"
+./profile/street: "Nevsky Prospect"
+./profile/apartment: 45
 **************************************************
+
 ```
 
 ### Explanation
@@ -93,7 +88,7 @@ where the files from the `find` command output are passed as parameters.
 
 ### Examples of JSON files
 
-The test directory also contains examples of JSON files:
-* ex_obj.json - file with an object at its root (used by default for the test).
+The test/ directory contains examples of JSON files:
+* ex_obj.json - file with an object at its root.
 * ex_arr.json - file with an array of objects at its root.
 * ex_scal.json - file with a scalar value at its root.
