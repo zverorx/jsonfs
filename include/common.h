@@ -33,6 +33,16 @@
 /* ================================= */
 
 /**
+ * @def SPECIAL_PREFIX
+ * @brief Prefix for virtual files representing array elements and scalar values.
+ * 
+ * Used for files/directories that don't exist in original JSON:
+ * - array indices: _$0, _$1, _$2
+ * - scalar values: _$scalar
+ */
+#define SPECIAL_PREFIX	"_$"
+
+/**
  * @def CHECK_POINTER
  * @brief Checks if a pointer is NULL.
  *
