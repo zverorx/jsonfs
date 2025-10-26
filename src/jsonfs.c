@@ -170,7 +170,7 @@ json_t *convert_to_obj(json_t *root, int is_root)
 		converted_val = NULL;
         json_array_foreach(root, i, value) {
             char key[32];
-            snprintf(key, sizeof(key), "*%zu", i);
+            snprintf(key, sizeof(key), "%s%zu", SPECIAL_PREFIX, i);
 
             converted_val = convert_to_obj(value, 0);
             CHECK_POINTER(converted_val, NULL);
@@ -181,7 +181,7 @@ json_t *convert_to_obj(json_t *root, int is_root)
 		if (is_root) {
 			json_copy_ret = json_copy(root);
 			CHECK_POINTER(json_copy_ret, NULL);
-			json_object_set_new(obj, "*scalar", json_copy_ret);
+			json_object_set_new(obj, SPECIAL_PREFIX"scalar", json_copy_ret);
 		}
 		else {
 			obj = json_copy(root);

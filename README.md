@@ -29,10 +29,10 @@ You can obtain the source code in one of two ways:
 
 ### From the archive:
 ```
-curl -L -o jsonfs-v1.1.1.zip https://github.com/zverorx/jsonfs/archive/refs/tags/v1.1.1.zip
+curl -L -o jsonfs-v1.1.2.zip https://github.com/zverorx/jsonfs/archive/refs/tags/v1.1.2.zip
 ```
 ```
-unzip jsonfs-v1.1.1.zip
+unzip jsonfs-v1.1.2.zip
 ```
 
 ### From the Git repository (latest development version):
@@ -56,7 +56,7 @@ make help
 
 Mounting:
 ```
-jsonfs <json_file> <mount_point> [ FUSE options... ]
+jsonfs <json_file> <mount_point> [fuse_options]
 ```
 
 Unmounting:
@@ -68,39 +68,32 @@ fusermount3 -u <mount_point>
 If the original JSON file looks like this:
 ```
 {
-  "str": "hello",
-  "int": 42,
-  "float": 3.14,
-  "bool": true,
-  "nil": null,
-  "arr": [1, "x", false],
-  "obj": {
-    "key": "value",
-	"empty_obj": { 
-	},
-	"nested_obj": {
-		"empty_str": ""
-	}
+  "user": "Ivan Petrov", 
+  "interests": ["photography", "cooking", "skiing"],
+  "phone": null,
+  "profile": {
+    "city": "Saint Petersburg",
+    "street": "Nevsky Prospect",
+    "apartment": 45
   }
 }
 ```
 then the mount point will contain the following files and directories:
  ```
 .
-├── arr
-├── bool
-├── float
-├── int
-├── nil
-├── obj
-│   ├── empty_obj
-│   ├── key
-│   └── nested_obj
-│       └── empty_str
-└── str
+├── interests
+│   ├── _$0
+│   ├── _$1
+│   └── _$2
+├── phone
+├── profile
+│   ├── apartment
+│   ├── city
+│   └── street
+└── user
 
  ```
-Each file contains the string representation of its JSON value (e.g. cat obj/key -> "value") 
+Each file contains the string representation of its JSON value (e.g. cat interests/_$0 -> "photography") 
 To check functionality, you can use a test script. To do this, review the README.md file in the test directory at the project.
 
 ## License
