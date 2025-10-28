@@ -43,7 +43,7 @@
 json_t *find_node_by_path(const char *path, json_t *root);
 
 /**
- * @brief Creates and initializes a json_private_data structure.
+ * @brief Creates and initializes a jsonfs_private_data structure.
  *
  * Allocates memory for the structure, assigns the JSON root object,
  * and duplicates the given file path.
@@ -51,9 +51,9 @@ json_t *find_node_by_path(const char *path, json_t *root);
  * @param json_root JSON root object (must not be NULL).
  * @param path 		Path to the JSON source file (must be a valid C string).
  *
- * @return Pointer to a new json_private_data instance on success, or NULL on failure.
+ * @return Pointer to a new jsonfs_private_data instance on success, or NULL on failure.
  */
-struct json_private_data *init_private_data(json_t *json_root, const char *path);
+struct jsonfs_private_data *init_private_data(json_t *json_root, const char *path);
 
 /**
  * @brief Gives the fuse_operations structure.
@@ -102,7 +102,7 @@ json_t *convert_to_obj(json_t *root, int is_root);
  * @param path File path to check (must be absolute path starting with '/').
  * @return 1 if the path is a special file, 0 otherwise.
  * 
- * @see handle_special_file()
+ * @see getattr_special_file()
  */
 int is_special_file(const char *path);
 
@@ -111,15 +111,21 @@ int is_special_file(const char *path);
  * 
  * @param path Special file path.
  * @param stat Structure to fill with file attributes.
+ * @param pd Private data structure passed to fuse_main function.  
+ * @return return 0 if success, negative error code otherwise.
+ * 
+ * @see is_special_file()
  */
-void handle_special_file(const char *path, struct stat *st);
+int getattr_special_file(const char *path, struct stat *st,
+						struct jsonfs_private_data *pd);
 
 /**
  * @brief Sets attributes for JSON nodes. Used in getattr.
  * 
  * @param node JSON node to process.
  * @param stat Structure to fill with file attributes.
+ * @return return 0 if success, negative error code otherwize.
  */
-void handle_json_file(json_t *node, struct stat *st);
+int getattr_json_file(json_t *node, struct stat *st);
 
 #endif /* JSONFS_H_SENTRY */

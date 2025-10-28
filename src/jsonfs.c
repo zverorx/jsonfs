@@ -31,6 +31,8 @@
 #include <fuse.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include "common.h"
 
@@ -45,16 +47,17 @@ extern void jsonfs_destroy(void *userdata);
 
 
 
-struct json_private_data *init_private_data(json_t *json_root, const char *path)
+struct jsonfs_private_data *init_private_data(json_t *json_root, const char *path)
 {
 	CHECK_POINTER(json_root, NULL);
 	CHECK_POINTER(path, NULL);
 
-	struct json_private_data *pd = calloc(1, sizeof(struct json_private_data));
+	struct jsonfs_private_data *pd = calloc(1, sizeof(struct jsonfs_private_data));
 	CHECK_POINTER(pd, NULL);
 
 	pd->root = json_root;
 	pd->path_to_json_file = strdup(path);
+	pd->is_saved = 1;
 	if (!pd->path_to_json_file) {
 		free(pd);
 		return NULL;
@@ -201,22 +204,65 @@ int is_special_file(const char *path)
 	return 0;
 }
 
-void handle_special_file(const char *path, struct stat *st)
+int getattr_special_file(const char *path, struct stat *st,
+						struct jsonfs_private_data *pd)
 {
+	time_t now;
+	int is_saved;
+
+	if (!path || !st) {
+        return -EFAULT;
+    }
+    
+    if (!pd) {
+        return -ENOMEM;
+    }
+    
+    if (!is_special_file(path)) {
+        return -EINVAL;
+    }
+	
+	is_saved = pd->is_saved;
+
+	now = time(NULL);
+	st->st_uid = getuid();
+	st->st_gid = getgid();
+	st->st_atime = now; 
+	st->st_mtime = now;
+	st->st_ctime = now;
+
 	if (strcmp("/.status", path) == 0) {
 		st->st_mode = S_IFREG | 0444;
 		st->st_nlink = 1;
-		st->st_size = 1; /* FIXME */
+		st->st_size = is_saved ? strlen("SAVED") : strlen("UNSAVED");
 	}
 	else if (strcmp("/.save", path) == 0) {
 		st->st_mode = S_IFREG | 0666;
 		st->st_nlink = 1;
 		st->st_size = 1;
 	}
+	return 0;
 }
 
-void handle_json_file(json_t *node, struct stat *st)
+int getattr_json_file(json_t *node, struct stat *st)
 {
+	time_t now;
+
+	if (!st) {
+        return -EFAULT;
+    }
+    
+    if (!node) {
+        return -ENOMEM;
+    }
+
+	now = time(NULL);
+	st->st_uid = getuid();
+	st->st_gid = getgid();
+	st->st_atime = now; 
+	st->st_mtime = now;
+	st->st_ctime = now;
+
 	if (json_is_object(node)) {
 		st->st_mode = S_IFDIR | 0555;
 		st->st_nlink = 2 + count_subdirs(node);
@@ -225,7 +271,9 @@ void handle_json_file(json_t *node, struct stat *st)
 		st->st_mode = S_IFREG | 0444;
 		st->st_nlink = 1;
 		char *str = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
+		CHECK_POINTER(str, 1);
 		st->st_size = str ? strlen(str) : 0;
 		free(str);
 	}
+	return 0;
 }

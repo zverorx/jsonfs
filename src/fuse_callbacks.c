@@ -33,7 +33,6 @@
 #include <fuse.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
 
 #include "common.h"
@@ -42,31 +41,27 @@
 int jsonfs_getattr(const char *path, struct stat *st,
 				   struct fuse_file_info *fi)
 {
-	time_t now;
-	json_t *node;
+	json_t *node = NULL;
+	int res;
 
 	(void) fi;
 
-	memset(st, 0, sizeof(struct stat));
-	now = time(NULL);
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
 
-	st->st_uid = getuid();
-	st->st_gid = getgid();
-	st->st_atime = now; 
-	st->st_mtime = now;
-	st->st_ctime = now;
+	memset(st, 0, sizeof(struct stat));
 
 	if (is_special_file(path)) {
-		handle_special_file(path, st);
+		res = getattr_special_file(path, st, pd);
+		if (res) { return -res;}
 	}
 	else {
-		struct fuse_context *ctx = fuse_get_context();
-		struct json_private_data *pd = ctx->private_data;
-
 		node = find_node_by_path(path, pd->root);
 		CHECK_POINTER(node, -ENOENT);
 
-		handle_json_file(node, st);
+		res = getattr_json_file(node, st);
+		if (res) { return -res;}
 	}
 
 	return 0;
@@ -84,7 +79,8 @@ int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
-	struct json_private_data *pd = ctx->private_data;
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
 
 	FILL_OR_RETURN(buffer, ".");
 	FILL_OR_RETURN(buffer, "..");
@@ -119,7 +115,7 @@ int jsonfs_read(const char *path, char *buffer, size_t size,
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
-	struct json_private_data *pd = ctx->private_data;
+	struct jsonfs_private_data *pd = ctx->private_data;
 
 	node = find_node_by_path(path, pd->root);
 	CHECK_POINTER(node, -ENOENT);
@@ -146,7 +142,7 @@ void jsonfs_destroy(void *userdata)
 		return;
 	}
 
-	struct json_private_data *pd = (struct json_private_data *)userdata;
+	struct jsonfs_private_data *pd = (struct jsonfs_private_data *)userdata;
 
 	if (pd->root) {
 		json_decref(pd->root);

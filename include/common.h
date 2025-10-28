@@ -79,12 +79,13 @@
 /* ================================= */
 
 /**
- * @struct json_private_data
- * @brief Private data structure passed to FUSE callbacks.
+ * @struct jsonfs_private_data
+ * @brief Private data structure passed to fuse_main function.
  */
-struct json_private_data {
+struct jsonfs_private_data {
 	json_t *root;				/**< Root of the parsed JSON doc */
 	char *path_to_json_file;	/**< Path to the source JSON file */
+	int is_saved;				/**< Flag for defining the content in .status file */
 };
 
 /**
