@@ -109,7 +109,7 @@ int is_special_file(const char *path);
 /**
  * @brief Sets attributes for special files. Used in getattr.
  * 
- * @param path Special file path.
+ * @param path The absolute path to the special file.
  * @param stat Structure to fill with file attributes.
  * @param pd Private data structure passed to fuse_main function.  
  * @return return 0 if success, negative error code otherwise.
@@ -122,10 +122,12 @@ int getattr_special_file(const char *path, struct stat *st,
 /**
  * @brief Sets attributes for JSON nodes. Used in getattr.
  * 
- * @param node JSON node to process.
+ * @param path Absolute path, must not be NULL. 
  * @param stat Structure to fill with file attributes.
+ * @param pd Private data structure passed to fuse_main function. 
  * @return return 0 if success, negative error code otherwize.
  */
-int getattr_json_file(json_t *node, struct stat *st);
+int getattr_json_file(const char *path, struct stat *st,
+						struct jsonfs_private_data *pd);
 
 #endif /* JSONFS_H_SENTRY */

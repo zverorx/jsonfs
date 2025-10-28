@@ -210,13 +210,9 @@ int getattr_special_file(const char *path, struct stat *st,
 	time_t now;
 	int is_saved;
 
-	if (!path || !st) {
-        return -EFAULT;
-    }
-    
-    if (!pd) {
-        return -ENOMEM;
-    }
+	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(st, -EFAULT);
+	CHECK_POINTER(pd, -ENOMEM);
     
     if (!is_special_file(path)) {
         return -EINVAL;
@@ -244,24 +240,25 @@ int getattr_special_file(const char *path, struct stat *st,
 	return 0;
 }
 
-int getattr_json_file(json_t *node, struct stat *st)
+int getattr_json_file(const char *path, struct stat *st,
+						struct jsonfs_private_data *pd)
 {
 	time_t now;
+	json_t *node = NULL;
 
-	if (!st) {
-        return -EFAULT;
-    }
+	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(st, -EFAULT);
+	CHECK_POINTER(pd, -ENOMEM);
     
-    if (!node) {
-        return -ENOMEM;
-    }
-
 	now = time(NULL);
 	st->st_uid = getuid();
 	st->st_gid = getgid();
 	st->st_atime = now; 
 	st->st_mtime = now;
 	st->st_ctime = now;
+
+	node = find_node_by_path(path, pd->root);
+	CHECK_POINTER(node, -ENOENT);
 
 	if (json_is_object(node)) {
 		st->st_mode = S_IFDIR | 0555;

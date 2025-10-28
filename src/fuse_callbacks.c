@@ -54,14 +54,11 @@ int jsonfs_getattr(const char *path, struct stat *st,
 
 	if (is_special_file(path)) {
 		res = getattr_special_file(path, st, pd);
-		if (res) { return -res;}
+		if (res) { return -res; }
 	}
 	else {
-		node = find_node_by_path(path, pd->root);
-		CHECK_POINTER(node, -ENOENT);
-
-		res = getattr_json_file(node, st);
-		if (res) { return -res;}
+		res = getattr_json_file(path, st, pd);
+		if (res) { return -res; }
 	}
 
 	return 0;
