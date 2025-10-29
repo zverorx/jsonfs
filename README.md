@@ -29,10 +29,10 @@ You can obtain the source code in one of two ways:
 
 ### From the archive:
 ```
-curl -L -o jsonfs-v1-ro.zip https://github.com/zverorx/jsonfs/archive/refs/tags/v1-ro.zip
+curl -L -o jsonfs-ro.zip https://github.com/zverorx/jsonfs/archive/refs/tags/ro.zip
 ```
 ```
-unzip jsonfs-v1-ro.zip
+unzip jsonfs-ro.zip
 ```
 
 ### From the Git repository (latest development version):
