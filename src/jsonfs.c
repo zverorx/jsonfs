@@ -205,7 +205,7 @@ int is_special_file(const char *path)
 }
 
 int getattr_special_file(const char *path, struct stat *st,
-						struct jsonfs_private_data *pd)
+						 struct jsonfs_private_data *pd)
 {
 	time_t now;
 	int is_saved;
@@ -241,7 +241,7 @@ int getattr_special_file(const char *path, struct stat *st,
 }
 
 int getattr_json_file(const char *path, struct stat *st,
-						struct jsonfs_private_data *pd)
+					  struct jsonfs_private_data *pd)
 {
 	time_t now;
 	json_t *node = NULL;
@@ -273,4 +273,72 @@ int getattr_json_file(const char *path, struct stat *st,
 		free(str);
 	}
 	return 0;
+}
+
+int read_special_file(const char *path, char *buffer, size_t size,
+					  off_t offset, struct jsonfs_private_data *pd)
+{
+	char *text = NULL;
+	int is_saved;
+	size_t text_len;
+	size_t final_size = 0;
+
+	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(pd, -ENOMEM);
+
+    if (!is_special_file(path)) {
+        return -EINVAL;
+    }
+
+	is_saved = pd->is_saved;
+
+	if (strcmp("/.status", path) == 0) {
+		text = is_saved ? "SAVED" : "UNSAVED";
+
+	}
+	else if (strcmp("/.save", path) == 0) {
+		text = is_saved ? "0" : "1";
+	}
+	
+	text_len = strlen(text);
+	if (offset < text_len) {
+		final_size = text_len - offset;
+		if (final_size > size) {
+			final_size = size;
+		}
+		memcpy(buffer, text + offset, final_size);
+	}
+
+	return (int)final_size;
+}
+
+int read_json_file(const char *path, char *buffer, size_t size,
+				   off_t offset, struct jsonfs_private_data *pd)
+{
+	json_t *node = NULL;
+	char *text = NULL;
+	size_t text_len;
+	size_t final_size = 0;
+
+	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(pd, -ENOMEM);
+
+	node = find_node_by_path(path, pd->root);
+	CHECK_POINTER(node, -ENOENT);
+
+	
+	text = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
+	CHECK_POINTER(text, -ENOMEM);
+
+	text_len = strlen(text);
+	if (offset < text_len) {
+		final_size = text_len - offset;
+		if (final_size > size) {
+			final_size = size;
+		}
+		memcpy(buffer, text + offset, final_size);
+	}
+	free(text);
+
+	return (int)final_size;
 }

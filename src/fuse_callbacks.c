@@ -54,11 +54,11 @@ int jsonfs_getattr(const char *path, struct stat *st,
 
 	if (is_special_file(path)) {
 		res = getattr_special_file(path, st, pd);
-		if (res) { return -res; }
+		if (res) { return res; }
 	}
 	else {
 		res = getattr_json_file(path, st, pd);
-		if (res) { return -res; }
+		if (res) { return res; }
 	}
 
 	return 0;
@@ -81,6 +81,10 @@ int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 
 	FILL_OR_RETURN(buffer, ".");
 	FILL_OR_RETURN(buffer, "..");
+	if (strcmp("/", path) == 0) {
+		FILL_OR_RETURN(buffer, ".status");
+		FILL_OR_RETURN(buffer, ".save");
+	}
 
 	node = find_node_by_path(path, pd->root);
 	CHECK_POINTER(node, -ENOENT);
@@ -93,44 +97,27 @@ int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 		FILL_OR_RETURN(buffer, key);
 	}
 
-	if (strcmp("/", path) == 0) {
-		FILL_OR_RETURN(buffer, ".status");
-		FILL_OR_RETURN(buffer, ".save");
-	}
-
 	return 0;
 }
 
 int jsonfs_read(const char *path, char *buffer, size_t size,
 				off_t offset, struct fuse_file_info *fi)
 {
-	char *text;
-	size_t text_len;
-	size_t copy_size = 0;
-	json_t *node;
-
+	int len;
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
 	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
 
-	node = find_node_by_path(path, pd->root);
-	CHECK_POINTER(node, -ENOENT);
-
-	text = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
-	CHECK_POINTER(text, -ENOMEM);
-
-	text_len = strlen(text);
-	if (offset < text_len) {
-		copy_size = text_len - offset;
-		if (copy_size > size) {
-			copy_size = size;
-		}
-		memcpy(buffer, text + offset, copy_size);
+	if (is_special_file(path)) {
+		len = read_special_file(path, buffer, size, offset, pd);
+	}
+	else {
+		len = read_json_file(path, buffer, size, offset, pd);
 	}
 
-	free(text);
-	return (int)copy_size;
+	return len;
 }
 
 void jsonfs_destroy(void *userdata)
