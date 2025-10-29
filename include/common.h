@@ -60,10 +60,10 @@
 
 /**
  * @def FILL_OR_RETURN 
- * @brief Calls filler for json_readdir.
+ * @brief Adds a directory entry to readdir buffer. 
  * 
- * @param BUFF void *buff from fuse_fill_dir_t.
- * @param NAME const char *name from fuse_fill_dir_t.
+ * @param BUFF Buffer from fuse_fill_dir_t filler function.
+ * @param NAME Name of the directory entry to add.
  *
  * @return Returns -ENOMEM if filler fails. 
  */
@@ -80,12 +80,15 @@
 
 /**
  * @struct jsonfs_private_data
- * @brief Private data structure passed to fuse_main function.
+ * @brief Private filesystem data. 
+ * 
+ * This structure is allocated in main() and passed to fuse_main(),
+ * then made available via fuse_get_context()->private_data in all callbacks.
  */
 struct jsonfs_private_data {
 	json_t *root;				/**< Root of the parsed JSON doc */
 	char *path_to_json_file;	/**< Path to the source JSON file */
-	int is_saved;				/**< Flag for defining the content in .status file */
+	int is_saved;				/**< Save state: 1=no unsaved changes, 0=has unsaved changes */	
 };
 
 /**

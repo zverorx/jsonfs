@@ -36,20 +36,19 @@
  * at the specified path, or NULL if the path is invalid or any
  * intermediate component is not a JSON object.
  *
- * @param path  Absolute path (e.g., "/foo/bar"), must not be NULL.
- * @param root  Root JSON object to start traversal from, must not be NULL.
- * @return      Pointer to the found JSON node, or NULL on failure.
+ * @param path Absolute path (e.g., "/foo/bar"), must not be NULL.
+ * @param root Root JSON object to start traversal from, must not be NULL.
+ * @return Pointer to the found JSON node, or NULL on failure.
  */
 json_t *find_node_by_path(const char *path, json_t *root);
 
 /**
  * @brief Creates and initializes a jsonfs_private_data structure.
  *
- * Allocates memory for the structure, assigns the JSON root object,
- * and duplicates the given file path.
+ * Allocates and initializes all structure fields.
  * 
  * @param json_root JSON root object (must not be NULL).
- * @param path 		Path to the JSON source file (must be a valid C string).
+ * @param path Path to the JSON source file (must be a valid C string).
  *
  * @return Pointer to a new jsonfs_private_data instance on success, or NULL on failure.
  */
@@ -70,10 +69,10 @@ struct fuse_operations get_fuse_op(void);
 struct private_args get_fuse_args(int argc, char **argv);
 
 /**
- * @brief Counts subdirectories in a JSON directory node.
- *        A subdirectory is a child JSON object.
+ * @brief Counts immediate subdirectories in a JSON directory node.
+ *        A subdirectory is a direct child JSON object.
  * @param obj JSON object representing a directory (must be non-NULL).
- * @return Number of child objects (subdirectories).
+ * @return Number of direct child objects (subdirectories).
  */
 int count_subdirs(json_t *obj);
 
@@ -82,13 +81,11 @@ int count_subdirs(json_t *obj);
  * @param root JSON value (object, array, or scalar).
  * @param is_root Flag indicating if this is the root level (1) or nested (0).
  * @return New independent JSON object:
- *         - Objects are recursively processed preserving keys
- *         - Arrays become {"*0":..., "*1":...} with asterisk-prefixed keys
- *         - Scalars at root become {"*scalar": value}  
- *         - Nested scalars are copied as-is
- *         Caller must json_decref() the result.
- * @note Asterisk prefixes provide unambiguous identification of
- *       converted arrays (*0, *1...) and root scalars (*scalar).
+ *         - Arrays become {"_$0":..., "_$1":...} with underscore-prefixed keys.
+ *         - Scalars at root become {"_$scalar": value}.
+ * @note Underscore-dollars prefixes provide unambiguous identification of
+ *       converted arrays (_$0, _$1...) and root scalars (_$scalar).
+ *       Caller must json_decref() the result.
  */
 json_t *convert_to_obj(json_t *root, int is_root);
 
@@ -96,8 +93,8 @@ json_t *convert_to_obj(json_t *root, int is_root);
  * @brief Checks if the given path corresponds to a special service file.
  * 
  * Special files are virtual files used for filesystem control operations:
- * - /.status - shows filesystem status
- * - /.save - triggers saving changes
+ * - /.status - shows filesystem status.
+ * - /.save - triggers saving changes.
  * 
  * @param path File path to check (must be absolute path starting with '/').
  * @return 1 if the path is a special file, 0 otherwise.
@@ -111,7 +108,7 @@ int is_special_file(const char *path);
  * 
  * @param path The absolute path to the special file.
  * @param stat Structure to fill with file attributes.
- * @param pd Private data structure passed to fuse_main function.  
+ * @param pd Private filesystem data from FUSE context. 
  * @return return 0 if success, negative error code otherwise.
  * 
  * @see is_special_file()
@@ -120,14 +117,46 @@ int getattr_special_file(const char *path, struct stat *st,
 						struct jsonfs_private_data *pd);
 
 /**
- * @brief Sets attributes for JSON nodes. Used in getattr.
+ * @brief Sets attributes for JSON files and directories. 
  * 
  * @param path Absolute path, must not be NULL. 
  * @param stat Structure to fill with file attributes.
- * @param pd Private data structure passed to fuse_main function. 
+ * @param pd Private filesystem data from FUSE context. 
  * @return return 0 if success, negative error code otherwize.
  */
 int getattr_json_file(const char *path, struct stat *st,
 						struct jsonfs_private_data *pd);
+
+/**
+ * @brief Reads content from special filesystem control files.
+ * 
+ * Implements read operation for virtual special files:
+ * - /.status: displays filesystem status information 
+ * - /.save: indicates whether the changes have been saved. 
+ * 
+ * @param path The absolute path to the special file.
+ * @param buffer Buffer provided by FUSE for storing read data.
+ * @param size Maximum number of bytes to read. 
+ * @param offset Byte offset from which to start reading. 
+ * @param pd Private filesystem data from FUSE context. 
+ * 
+ * @return Number of bytes read on success, negative error code on failure.
+ */
+int read_special_file(const char *path, char *buffer, size_t size,
+					  off_t offset, struct jsonfs_private_data *pd);
+
+/**
+ * @brief Reads content from JSON file.
+ * 
+ * @param path The absolute path to the JSON node.
+ * @param buffer Buffer provided by FUSE for storing read data.
+ * @param size Maximum number of bytes to read.
+ * @param offset Byte offset from which to start reading.
+ * @param pd Private filesystem data from FUSE context.
+ * 
+ * @return Number of bytes read on success, negative error code on failure.
+ */
+int read_json_file(const char *path, char *buffer, size_t size,
+				   off_t offset, struct jsonfs_private_data *pd);
 
 #endif /* JSONFS_H_SENTRY */
