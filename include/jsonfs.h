@@ -36,24 +36,23 @@
  * at the specified path, or NULL if the path is invalid or any
  * intermediate component is not a JSON object.
  *
- * @param path  Absolute path (e.g., "/foo/bar"), must not be NULL.
- * @param root  Root JSON object to start traversal from, must not be NULL.
- * @return      Pointer to the found JSON node, or NULL on failure.
+ * @param path Absolute path (e.g., "/foo/bar"), must not be NULL.
+ * @param root Root JSON object to start traversal from, must not be NULL.
+ * @return Pointer to the found JSON node, or NULL on failure.
  */
 json_t *find_node_by_path(const char *path, json_t *root);
 
 /**
- * @brief Creates and initializes a json_private_data structure.
+ * @brief Creates and initializes a jsonfs_private_data structure.
  *
- * Allocates memory for the structure, assigns the JSON root object,
- * and duplicates the given file path.
+ * Allocates and initializes all structure fields.
  * 
  * @param json_root JSON root object (must not be NULL).
- * @param path 		Path to the JSON source file (must be a valid C string).
+ * @param path Path to the JSON source file (must be a valid C string).
  *
- * @return Pointer to a new json_private_data instance on success, or NULL on failure.
+ * @return Pointer to a new jsonfs_private_data instance on success, or NULL on failure.
  */
-struct json_private_data *init_private_data(json_t *json_root, const char *path);
+struct jsonfs_private_data *init_private_data(json_t *json_root, const char *path);
 
 /**
  * @brief Gives the fuse_operations structure.
@@ -70,10 +69,10 @@ struct fuse_operations get_fuse_op(void);
 struct private_args get_fuse_args(int argc, char **argv);
 
 /**
- * @brief Counts subdirectories in a JSON directory node.
- *        A subdirectory is a child JSON object.
+ * @brief Counts immediate subdirectories in a JSON directory node.
+ *        A subdirectory is a direct child JSON object.
  * @param obj JSON object representing a directory (must be non-NULL).
- * @return Number of child objects (subdirectories).
+ * @return Number of direct child objects (subdirectories).
  */
 int count_subdirs(json_t *obj);
 
@@ -82,13 +81,11 @@ int count_subdirs(json_t *obj);
  * @param root JSON value (object, array, or scalar).
  * @param is_root Flag indicating if this is the root level (1) or nested (0).
  * @return New independent JSON object:
- *         - Objects are recursively processed preserving keys
- *         - Arrays become {"*0":..., "*1":...} with asterisk-prefixed keys
- *         - Scalars at root become {"*scalar": value}  
- *         - Nested scalars are copied as-is
- *         Caller must json_decref() the result.
- * @note Asterisk prefixes provide unambiguous identification of
- *       converted arrays (*0, *1...) and root scalars (*scalar).
+ *         - Arrays become {"_$0":..., "_$1":...} with underscore-prefixed keys.
+ *         - Scalars at root become {"_$scalar": value}.
+ * @note Underscore-dollars prefixes provide unambiguous identification of
+ *       converted arrays (_$0, _$1...) and root scalars (_$scalar).
+ *       Caller must json_decref() the result.
  */
 json_t *convert_to_obj(json_t *root, int is_root);
 

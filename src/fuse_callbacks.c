@@ -43,12 +43,13 @@ int jsonfs_getattr(const char *path, struct stat *st,
 				   struct fuse_file_info *fi)
 {
 	time_t now;
-	json_t *node;
+	json_t *node = NULL;
 
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
-	struct json_private_data *pd = ctx->private_data;
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
 
 	memset(st, 0, sizeof(struct stat));
 	now = time(NULL);
@@ -82,16 +83,17 @@ int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 				   enum fuse_readdir_flags flags)
 {
 	int ret_fill;
-	json_t *node;
+	json_t *node = NULL;
 
 	const char *key;
-    json_t *value;
+    json_t *value = NULL;
 
 	(void) offset;
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
-	struct json_private_data *pd = ctx->private_data;
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
 
 	ret_fill = filler(buffer, ".", NULL, 0,  FUSE_FILL_DIR_PLUS);
 	if (ret_fill) {
@@ -119,15 +121,15 @@ int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 int jsonfs_read(const char *path, char *buffer, size_t size,
 				off_t offset, struct fuse_file_info *fi)
 {
-	char *text;
+	char *text = NULL;
 	size_t text_len;
 	size_t copy_size = 0;
-	json_t *node;
+	json_t *node = NULL;
 
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
-	struct json_private_data *pd = ctx->private_data;
+	struct jsonfs_private_data *pd = ctx->private_data;
 
 	node = find_node_by_path(path, pd->root);
 	CHECK_POINTER(node, -ENOENT);
@@ -154,7 +156,7 @@ void jsonfs_destroy(void *userdata)
 		return;
 	}
 
-	struct json_private_data *pd = (struct json_private_data *)userdata;
+	struct jsonfs_private_data *pd = (struct jsonfs_private_data *)userdata;
 
 	if (pd->root) {
 		json_decref(pd->root);

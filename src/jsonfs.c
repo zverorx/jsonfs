@@ -45,12 +45,12 @@ extern void jsonfs_destroy(void *userdata);
 
 
 
-struct json_private_data *init_private_data(json_t *json_root, const char *path)
+struct jsonfs_private_data *init_private_data(json_t *json_root, const char *path)
 {
 	CHECK_POINTER(json_root, NULL);
 	CHECK_POINTER(path, NULL);
 
-	struct json_private_data *pd = calloc(1, sizeof(struct json_private_data));
+	struct jsonfs_private_data *pd = calloc(1, sizeof(struct jsonfs_private_data));
 	CHECK_POINTER(pd, NULL);
 
 	pd->root = json_root;

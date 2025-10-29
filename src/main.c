@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 	CHECK_POINTER(correct_root, EXIT_FAILURE);
 	json_decref(root);
 
-	struct json_private_data *pd = init_private_data(correct_root, json_file);
+	struct jsonfs_private_data *pd = init_private_data(correct_root, json_file);
 	if (!pd) {
 		json_decref(correct_root);
 		return EXIT_FAILURE;
