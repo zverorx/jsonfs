@@ -104,6 +104,24 @@ json_t *convert_to_obj(json_t *root, int is_root);
 int is_special_file(const char *path);
 
 /**
+ * 
+ */
+int replace_json_value(const char *path, const char *buffer, size_t size,
+					   off_t offset, struct jsonfs_private_data *pd);
+
+/**
+ * 
+ */
+int replace_nodes(json_t *old_node, json_t *new_node, 
+				  struct jsonfs_private_data *pd);
+
+/**
+ * 
+ */				  
+int find_parent_key_index(json_t *root, json_t *node, json_t **parent, 
+						  const char **key);
+
+/**
  * @brief Sets attributes for special files. Used in getattr.
  * 
  * @param path The absolute path to the special file.
@@ -158,5 +176,31 @@ int read_special_file(const char *path, char *buffer, size_t size,
  */
 int read_json_file(const char *path, char *buffer, size_t size,
 				   off_t offset, struct jsonfs_private_data *pd);
+/**
+ * @brief
+ * 
+ * @param path 
+ * @param buffer
+ * @param size
+ * @param offset
+ * @param pd
+ * 
+ * @return
+ */
+int write_special_file(const char *path, const char *buffer, size_t size,
+					   off_t offset, struct jsonfs_private_data *pd);
+/**
+ * @brief
+ * 
+ * @param path 
+ * @param buffer
+ * @param size
+ * @param offset
+ * @param pd
+ * 
+ * @return
+ */
+int write_json_file(const char *path, const char *buffer, size_t size,
+					off_t offset, struct jsonfs_private_data *pd);
 
 #endif /* JSONFS_H_SENTRY */
