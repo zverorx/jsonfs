@@ -23,13 +23,18 @@ BINDIR = bin
 OBJDIR = obj
 
 # List of source files
-SOURCES = $(SRCDIR)/main.c $(SRCDIR)/fuse_callbacks.c $(SRCDIR)/jsonfs.c
+SOURCES = $(SRCDIR)/main.c 			 \
+		  $(SRCDIR)/fuse_callbacks.c \
+		  $(SRCDIR)/jsonfs.c 		 \
+		  $(SRCDIR)/handlers.c
 
 # List of objects files
 OBJECTS = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SOURCES))
 
 # List of header files
-HEADERS = $(INCDIR)/common.h $(INCDIR)/jsonfs.h
+HEADERS = $(INCDIR)/common.h	\
+		  $(INCDIR)/jsonfs.h	\
+		  $(INCDIR)/handlers.h 
 
 # Compiler flags
 CFLAGS = -std=gnu99
