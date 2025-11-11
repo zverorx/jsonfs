@@ -46,9 +46,8 @@ trap 'cd $test_dir ; sync ;                   \
      rmdir $mount_point ;                     \
      rm "$log_file"' ERR EXIT
 
-########## Test start ##########
-
 ########## TEST 1 ##########
+
 echo -n "msg: string file before: "
 cat string
 echo
@@ -59,8 +58,8 @@ echo -n "msg: string file after: "
 cat string
 echo
 
-
 ########## TEST 2 ##########
+
 echo -n "msg: float file before: "
 cat float
 echo
@@ -71,5 +70,4 @@ echo -n "msg: float file after: "
 cat float
 echo
 
-########## Test end ##########
 exit 0
