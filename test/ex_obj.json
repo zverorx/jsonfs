@@ -1,12 +1,10 @@
 {
-  "english_string": "hello",
-  "русская_строка": "привет",
-  "cadena_española": "hola",
-  "中国弦乐": "嗨。",
+  "string": "hello",
+  "строка": "привет",
   "int": 42,
   "float": 3.14,
   "bool": true,
-  "nil": null,
+  "null": null,
   "arr": [1, "x", false],
   "obj": {
     "key": "value",
