@@ -37,6 +37,7 @@
 
 #include "common.h"
 #include "jsonfs.h"
+#include "handlers.h"
 
 int jsonfs_getattr(const char *path, struct stat *st,
 				   struct fuse_file_info *fi)
