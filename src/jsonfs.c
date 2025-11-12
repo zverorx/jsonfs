@@ -209,68 +209,7 @@ int is_special_file(const char *path)
 	return 0;
 }
 
-int replace_json_value(const char *path, const char *buffer, size_t size,
-					   off_t offset, struct jsonfs_private_data *pd)
-{
-	json_t *old_node = NULL;
-	json_t *new_node = NULL;
-	char *content = NULL;
-	char *new_content = NULL;
-	size_t content_len;
-	int res_replace;
-
-	CHECK_POINTER(path, -EFAULT);
-	CHECK_POINTER(buffer, -EFAULT);
-	CHECK_POINTER(pd, -EFAULT);
-
-	old_node = find_node_by_path(path, pd->root);
-	CHECK_POINTER(old_node, -ENOENT);
-
-	content = json_dumps(old_node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
-	CHECK_POINTER(content, -ENOMEM);
-
-	content_len = strlen(content);
-
-	if (size + offset > content_len) {
-		new_content = realloc(content, size + offset + 1);
-		if (!new_content) { goto handle_error; }
-		content = new_content;
-		content_len = size + offset;
-	}
-
-	for(int i = offset, j = 0; i < content_len && j < size; i++, j++) {
-		content[i] = buffer[j];
-	}
-
-	//if (content_len) { content[content_len - 1] = '\0'; }
-
-#if 1
-	fprintf(stderr, "content_len: %d\n", content_len);
-	fprintf(stderr, "content: %s\n", content);
-#endif
-
-	new_node = json_loads(content, JSON_DECODE_ANY, NULL);
-	if (!new_node) { goto handle_error; }
-
-	res_replace = replace_nodes(old_node, new_node, pd);
-	if (res_replace) { 
-		json_decref(new_node);
-		free(content);
-		return res_replace;
-	}
-
-	json_decref(old_node); /* XXX */
-	free(content);
-	return 0;
-
-	handle_error:
-	json_decref(new_node);
-	free(content);
-	return -ENOMEM;
-}
-
-int replace_nodes(json_t *old_node, json_t *new_node, 
-				  struct jsonfs_private_data *pd)
+int replace_nodes(json_t *old_node, json_t *new_node, json_t *root)
 {
 	json_t *parent = NULL;
 	const char *key = NULL;
@@ -279,10 +218,10 @@ int replace_nodes(json_t *old_node, json_t *new_node,
 
 	CHECK_POINTER(old_node, -EFAULT);
 	CHECK_POINTER(new_node, -EFAULT);
-	CHECK_POINTER(pd, -EFAULT);
+	CHECK_POINTER(root, -EFAULT);
 
-	res_find = find_parent_key_index(pd->root, old_node, &parent, &key);
-	if (res_find) { return -ENOENT; }
+	res_find = find_parent_key(root, old_node, &parent, &key);
+	if (res_find) { return res_find; }
 
 	if (json_is_object(parent)) {
 		res_set = json_object_set(parent, key, new_node);	
@@ -292,8 +231,8 @@ int replace_nodes(json_t *old_node, json_t *new_node,
 	return 0;
 }
 
-int find_parent_key_index(json_t *root, json_t *node, json_t **parent, 
-						  const char **key)
+int find_parent_key(json_t *root, json_t *node, json_t **parent, 
+					const char **key)
 {
 	json_t *v = NULL;
 	const char *k = NULL;
@@ -304,7 +243,7 @@ int find_parent_key_index(json_t *root, json_t *node, json_t **parent,
     CHECK_POINTER(parent, -EFAULT);
     CHECK_POINTER(key, -EFAULT);
 
-	if (json_equal(root, node)) { return 1; }
+	if (json_equal(root, node)) { return -EINVAL; }
 
 	if (json_is_object(root)) {
 		json_object_foreach(root, k, v) {
@@ -314,10 +253,10 @@ int find_parent_key_index(json_t *root, json_t *node, json_t **parent,
 				return 0;
 			}
 
-			res_find = find_parent_key_index(v, node, parent, key);
+			res_find = find_parent_key(v, node, parent, key);
 			if (!res_find) { return 0; }
 		}
 	}
 
-	return 1;
+	return -ENOENT;
 }

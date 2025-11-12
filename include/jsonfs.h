@@ -104,21 +104,31 @@ json_t *convert_to_obj(json_t *root, int is_root);
 int is_special_file(const char *path);
 
 /**
+ * @brief Replace a JSON node with new node in the tree.
  * 
+ * Finds parent of old_node and replaces it with new_node.
+ * Works for objects only.
+ * 
+ * @param old_node Node to be replaced (must exist in tree).
+ * @param new_node New node to insert.
+ * @param root Root of JSON tree to search in.
+ * @return 0 on success, negative error code on failure.
  */
-int replace_json_value(const char *path, const char *buffer, size_t size,
-					   off_t offset, struct jsonfs_private_data *pd);
+int replace_nodes(json_t *old_node, json_t *new_node, json_t *root);
 
 /**
+ * @brief Find parent and key for given JSON node.
  * 
+ * Recursively searches JSON tree for node's parent.
+ * Searches only for objects, not arrays.
+ * 
+ * @param root Root node to start search from.
+ * @param node Node to find parent for.
+ * @param parent[out] Found parent node.
+ * @param key[out] Key in parent object.
+ * @return 0 on success, -ENOENT if not found, -EINVAL if node is root.
  */
-int replace_nodes(json_t *old_node, json_t *new_node, 
-				  struct jsonfs_private_data *pd);
-
-/**
- * 
- */				  
-int find_parent_key_index(json_t *root, json_t *node, json_t **parent, 
-						  const char **key);
+int find_parent_key(json_t *root, json_t *node, json_t **parent, 
+					const char **key);
 
 #endif /* JSONFS_H_SENTRY */

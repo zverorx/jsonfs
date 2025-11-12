@@ -198,17 +198,67 @@ int write_special_file(const char *path, const char *buffer, size_t size,
 int write_json_file(const char *path, const char *buffer, size_t size,
 					off_t offset, struct jsonfs_private_data *pd)
 {
-	json_t *node = NULL;
+	json_t *old_node = NULL;
+	json_t *new_node = NULL;
+	json_t *root = NULL;
+	char *content = NULL;
+	void *res_realloc = NULL;
+	size_t content_len;
 	int res_replace;
+	int ret = (int) size;
 
 	CHECK_POINTER(path, -EFAULT);
 	CHECK_POINTER(buffer, -EFAULT);
 	CHECK_POINTER(pd, -EFAULT);
 
-	res_replace = replace_json_value(path, buffer, size, offset, pd);
-	if (res_replace) { return res_replace; }
+	root = pd->root;
+	CHECK_POINTER(root, -EFAULT);
+
+	old_node = find_node_by_path(path, root);
+	CHECK_POINTER(old_node, -ENOENT);
+
+	content = json_dumps(old_node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
+	CHECK_POINTER(content, -ENOMEM);
+
+	content_len = strlen(content);
+
+	if (size + offset > content_len) {
+		res_realloc = realloc(content, size + offset + 1);
+		if (!res_realloc) { ret = -ENOMEM; goto handle_error; }
+		content = res_realloc;
+	}
+
+	content_len = size + offset;
+	content[content_len] = '\0';
+
+	for(int i = offset, j = 0; i < content_len && j < size; i++, j++) {
+		content[i] = buffer[j];
+	}
+
+#	if 0
+	fprintf(stderr, "content: %s\n", content);
+	fprintf(stderr, "content_len: %d\n", content_len);
+	fprintf(stderr, "size: %d\n", size);
+	fprintf(stderr, "offset: %d\n", offset);
+	for(int i = 0; i < size; i++) {
+		fprintf(stderr, "el[%d]: %c\n", i, buffer[i]);
+	}
+#	endif
+
+	new_node = json_loads(content, JSON_DECODE_ANY, NULL);
+	if (!new_node) { ret = -EINVAL; goto handle_error; }
+
+	res_replace = replace_nodes(old_node, new_node, root);
+	if (res_replace) { ret = -ENOENT; goto handle_error; }
 
 	pd->is_saved = 0;
 
-	return (int) size;
+	json_decref(old_node);
+	free(content);
+	return ret;
+
+	handle_error:
+	json_decref(new_node);
+	free(content);
+	return ret;
 }
