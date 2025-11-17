@@ -29,6 +29,20 @@
 #include <jansson.h>
 
 /* ================================= */
+/*              Enums                */
+/* ================================= */
+
+/**
+ * @enum set_time
+ * @see add_node_to_list_ft 
+ */
+enum set_time {
+	SET_ATIME = 1,
+	SET_MTIME = 2,
+	SET_CTIME = 4
+};
+
+/* ================================= */
 /*              Macros               */
 /* ================================= */
 
@@ -86,9 +100,27 @@
  * then made available via fuse_get_context()->private_data in all callbacks.
  */
 struct jsonfs_private_data {
-	json_t *root;				/**< Root of the parsed JSON doc */
+	json_t *root;				/**< Deserialized JSON document */
 	char *path_to_json_file;	/**< Path to the source JSON file */
+	struct file_time *ft;		/**< Head of the file times linked list */
+	time_t mount_time;			/**< Filesystem mount time */
+	uid_t uid;					/**< User ID */
+	gid_t gid; 					/**< Group ID */
 	int is_saved;				/**< Save state: 1=no unsaved changes, 0=has unsaved changes */	
+};
+
+/**
+ * @struct file_time
+ * @brief File time metadata structure.
+ * @see add_node_to_list_ft
+ * @see find_node_file_time 
+ */
+struct file_time {
+    char *path;                 /**< File/directory path */
+    time_t atime;               /**< Last access time */
+    time_t mtime;               /**< Last modification time */
+    time_t ctime;               /**< Last status change time */
+    struct file_time *next_node;/**< Next node in singly-linked list */
 };
 
 /**
