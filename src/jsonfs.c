@@ -53,6 +53,8 @@ extern void jsonfs_destroy(void *userdata);
 
 struct jsonfs_private_data *init_private_data(json_t *json_root, const char *path)
 {
+	time_t now = time(NULL);
+
 	CHECK_POINTER(json_root, NULL);
 	CHECK_POINTER(path, NULL);
 
@@ -60,14 +62,116 @@ struct jsonfs_private_data *init_private_data(json_t *json_root, const char *pat
 	CHECK_POINTER(pd, NULL);
 
 	pd->root = json_root;
+
 	pd->path_to_json_file = strdup(path);
+	if (!pd->path_to_json_file) { goto handle_error; }
+
+	pd->ft = add_node_to_list_ft("/", NULL, SET_ATIME | SET_MTIME | SET_CTIME);
+	if (!pd->ft) { goto handle_error; }
+
+	pd->mount_time = now;
+	pd->uid = getuid();
+	pd->gid = getgid();
 	pd->is_saved = 1;
-	if (!pd->path_to_json_file) {
-		free(pd);
-		return NULL;
-	}
 
 	return pd;
+	
+	handle_error:
+		free(pd);
+		return NULL;
+}
+
+void destroy_private_data(struct jsonfs_private_data *pd)
+{
+	struct file_time *next = NULL;
+	struct file_time *curr = NULL;
+
+	if (!pd) { return; }
+
+	if (pd->root) {
+		json_decref(pd->root);
+	}
+
+	free(pd->path_to_json_file);
+
+	curr = pd->ft;
+	while(curr) {
+		next = curr->next_node;
+		free(curr->path);
+		free(curr);
+		curr = next;
+	}
+
+	free(pd);
+}
+
+struct file_time *add_node_to_list_ft(const char* path, struct file_time *root, 
+									   enum set_time flags)
+{
+	time_t now;
+	char *path_dup = NULL;
+	struct file_time *new_node = NULL;
+	struct file_time *last = NULL;
+
+	CHECK_POINTER(path, NULL);
+
+	last = root;
+	while(last) {
+		if (strcmp(path, last->path) == 0) {
+			return NULL;
+		}
+		last = last->next_node;
+	}
+
+	path_dup = strdup(path);
+	CHECK_POINTER(path_dup, NULL);
+
+	new_node = calloc(1, sizeof(struct file_time));
+	CHECK_POINTER(new_node, NULL);
+	
+	now = time(NULL);
+	new_node->path = path_dup;
+
+	if (flags & SET_ATIME || !root) { new_node->atime = now; }
+	else { new_node->atime = root->atime; }
+
+	if (flags & SET_MTIME || !root) { new_node->mtime = now; }
+	else { new_node->mtime = root->mtime; }
+
+	if (flags & SET_CTIME || !root) { new_node->ctime = now; }
+	else { new_node->ctime = root->ctime; }
+
+	new_node->next_node = NULL;
+
+	if(!root) { return new_node; }
+
+	last = root;
+	while(last->next_node) {
+		last = last->next_node;
+	}
+
+	last->next_node = new_node;
+
+	return new_node;
+}
+struct file_time *find_node_file_time(const char *path, struct file_time *root)
+{
+	struct file_time *res = NULL;
+	struct file_time *curr = NULL;
+
+	CHECK_POINTER(path, NULL);
+	CHECK_POINTER(root, NULL);
+
+	curr = root;
+	while(curr) {
+		if (strcmp(path, curr->path) == 0) {
+			res = curr;
+			break;
+		}
+		curr = curr->next_node;
+	}
+
+	return res;
 }
 
 json_t *find_node_by_path(const char *path, json_t *root)
@@ -86,23 +190,23 @@ json_t *find_node_by_path(const char *path, json_t *root)
 	CHECK_POINTER(dup, NULL);
 
 	char *key = strtok_r(dup, "/", &saveptr);
-	if (!key) goto exit_fail;
+	if (!key) goto handle_error;
 
 	json_t *curr_obj = root;
 
 	while(key) {
-		if (!json_is_object(curr_obj)) goto exit_fail;
+		if (!json_is_object(curr_obj)) goto handle_error;
 		curr_obj = json_object_get(curr_obj, key);
-		if (!curr_obj) goto exit_fail;
+		if (!curr_obj) goto handle_error;
 		key = strtok_r(NULL, "/", &saveptr);
 	}
 
 	free(dup);
 	return curr_obj;
 
-exit_fail:
-	free(dup);
-	return NULL;
+	handle_error:
+		free(dup);
+		return NULL;
 }
 
 struct fuse_operations get_fuse_op(void)

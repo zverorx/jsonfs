@@ -55,6 +55,42 @@ json_t *find_node_by_path(const char *path, json_t *root);
 struct jsonfs_private_data *init_private_data(json_t *json_root, const char *path);
 
 /**
+ * @brief Destroys a jsonfs_private_data structure.
+ * @param pd Pointer to the jsonfs_private_data structure to destroy.
+ */
+void destroy_private_data(struct jsonfs_private_data *pd);
+
+/**
+ * @brief Adds a new file time node to the linked list.
+ *
+ * Creates a new file_time node with the specified path and time flags.
+ * If the node already exists in the list, returns NULL.
+ * If the list is empty (root is NULL), creates and returns the first node.
+ *
+ * @param path File path for the new node (must not be NULL).
+ * @param root Head of the file_time linked list (can be NULL for empty list).
+ * @param flags Bitmask specifying which time fields to set to current time.
+ *              See enum set_time for available flags.
+ *
+ * @return Pointer to the newly created node on success,
+ *         NULL if node already exists or on allocation failure.
+ */
+struct file_time *add_node_to_list_ft(const char* path, struct file_time *root, 
+									   enum set_time flags);
+
+/**
+ * @brief Finds a file_time node by path in the linked list.
+ *
+ * Searches through the file_time linked list for a node with matching path.
+ *
+ * @param path File path to search for (must not be NULL).
+ * @param root Head of the file_time linked list to search (must not be NULL).
+ *
+ * @return Pointer to the found file_time node, or NULL if not found.
+ */
+struct file_time *find_node_file_time(const char *path, struct file_time *root);
+
+/**
  * @brief Gives the fuse_operations structure.
  * @return Struct fuse_operations with implemented callbacks.
  */
