@@ -42,7 +42,6 @@
 int jsonfs_getattr(const char *path, struct stat *st,
 				   struct fuse_file_info *fi)
 {
-	json_t *node = NULL;
 	int res_getattr;
 
 	(void) fi;
@@ -147,11 +146,5 @@ void jsonfs_destroy(void *userdata)
 	}
 
 	struct jsonfs_private_data *pd = (struct jsonfs_private_data *)userdata;
-
-	if (pd->root) {
-		json_decref(pd->root);
-	}
-
-	free(pd->path_to_json_file);
-	free(pd);
+	destroy_private_data(pd);
 }
