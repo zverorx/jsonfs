@@ -144,8 +144,7 @@ int read_special_file(const char *path, char *buffer, size_t size,
 	is_saved = pd->is_saved;
 
 	if (strcmp("/.status", path) == 0) {
-		text = is_saved ? "SAVED" : "UNSAVED";
-
+		text = is_saved ? "SAVED\n" : "UNSAVED\n";
 	}
 	else if (strcmp("/.save", path) == 0) {
 		text = is_saved ? "0" : "1";
@@ -216,6 +215,7 @@ int read_json_file(const char *path, char *buffer, size_t size,
 int write_special_file(const char *path, const char *buffer, size_t size,
 					   off_t offset, struct jsonfs_private_data *pd)
 {
+	int res_save;
 	time_t now = time(NULL);
 	struct file_time *ft = NULL;
 
@@ -227,10 +227,15 @@ int write_special_file(const char *path, const char *buffer, size_t size,
 		return -EINVAL; 
 	}
 
-	if (strcmp("/.save", path) == 0) {
-		pd->is_saved = 1;
-		return (int) size;
+	if (strcmp("/.save", path) != 0) {
+		return -EACCES;
 	}
+
+	res_save = json_dump_file(pd->root, pd->path_to_json_file, 
+							  JSON_INDENT(2) | JSON_ENCODE_ANY);
+	if (res_save < 0) { return -EINVAL; }
+
+	pd->is_saved = 1;
 
 	ft = find_node_file_time(path, pd->ft);
 	if (ft) {
@@ -241,7 +246,7 @@ int write_special_file(const char *path, const char *buffer, size_t size,
 		add_node_to_list_ft(path, pd->ft, SET_MTIME | SET_CTIME);
 	}
 
-	return -EACCES;
+	return (int) size;
 }
 
 int write_json_file(const char *path, const char *buffer, size_t size,

@@ -123,7 +123,7 @@ enum set_time {
  */
 struct jsonfs_private_data {
 	json_t *root;				/**< Deserialized JSON document */
-	char *path_to_json_file;	/**< Path to the source JSON file */
+	char *path_to_json_file;	/**< Absolute path to the source JSON file */
 	struct file_time *ft;		/**< Head of the file times linked list */
 	time_t mount_time;			/**< Filesystem mount time */
 	uid_t uid;					/**< User ID */

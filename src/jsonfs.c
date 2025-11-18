@@ -33,10 +33,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include "common.h"
 #include "jsonfs.h"
-#include <stdio.h>
 
 extern int jsonfs_getattr(const char *path, struct stat *st,
 				   struct fuse_file_info *fi);
@@ -53,6 +53,9 @@ extern void jsonfs_destroy(void *userdata);
 
 struct jsonfs_private_data *init_private_data(json_t *json_root, const char *path)
 {
+	int count_byte;
+	char cwd[MID_SIZE];
+	char full_path[BIG_SIZE];
 	time_t now = time(NULL);
 
 	CHECK_POINTER(json_root, NULL);
@@ -63,7 +66,12 @@ struct jsonfs_private_data *init_private_data(json_t *json_root, const char *pat
 
 	pd->root = json_root;
 
-	pd->path_to_json_file = strdup(path);
+	if (!getcwd(cwd, sizeof(cwd))) { goto handle_error; }
+
+	count_byte = snprintf(full_path, sizeof(full_path), "%s/%s", cwd, path);
+	if (count_byte >= sizeof(full_path)) { goto handle_error; }
+
+	pd->path_to_json_file = strdup(full_path);
 	if (!pd->path_to_json_file) { goto handle_error; }
 
 	pd->ft = add_node_to_list_ft("/", NULL, SET_ATIME | SET_MTIME | SET_CTIME);
@@ -77,6 +85,8 @@ struct jsonfs_private_data *init_private_data(json_t *json_root, const char *pat
 	return pd;
 	
 	handle_error:
+		json_decref(pd->root);
+		free(pd->path_to_json_file);
 		free(pd);
 		return NULL;
 }
@@ -281,7 +291,7 @@ json_t *convert_to_obj(json_t *root, int is_root)
 		value = NULL;
 		converted_val = NULL;
         json_array_foreach(root, i, value) {
-            char key[32];
+            char key[SHRT_SIZE];
             snprintf(key, sizeof(key), "%s%zu", SPECIAL_PREFIX, i);
 
             converted_val = convert_to_obj(value, 0);
