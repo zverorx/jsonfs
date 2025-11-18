@@ -47,6 +47,28 @@ enum set_time {
 /* ================================= */
 
 /**
+ * @def SHRT_SIZE
+ * @brief Used as the size for buffers.
+ */
+#define SHRT_SIZE		32
+
+/**
+ * @def MID_SIZE
+ * @brief Used as the size for buffers.
+ * 
+ * Is equal to two SHRT_SIZE.
+ */
+#define MID_SIZE		SHRT_SIZE * 2
+
+/**
+ * @def BIG_SIZE
+ * @brief Used as the size for buffers.
+ * 
+ * Is equal to two MID_SIZE.
+ */
+#define BIG_SIZE		MID_SIZE * 2	
+
+/**
  * @def SPECIAL_PREFIX
  * @brief Prefix for virtual files representing array elements and scalar values.
  * 
