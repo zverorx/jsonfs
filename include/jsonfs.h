@@ -61,6 +61,12 @@ struct jsonfs_private_data *init_private_data(json_t *json_root, const char *pat
 void destroy_private_data(struct jsonfs_private_data *pd);
 
 /**
+ * @brief Free the struct file_time node in the list. 
+ * @param ft The node that will be free. 
+ */
+void free_file_time(struct file_time *ft);
+
+/**
  * @brief Adds a new file time node to the linked list.
  *
  * Creates a new file_time node with the specified path and time flags.
@@ -77,6 +83,14 @@ void destroy_private_data(struct jsonfs_private_data *pd);
  */
 struct file_time *add_node_to_list_ft(const char* path, struct file_time *root, 
 									   enum set_time flags);
+/**
+ * @brief Removes a node from the list.
+ * @param path File path for the node being deleted (must not be NULL).
+ * @param root Head of the file_time linked list (must not be NULL).
+ * 
+ * @return 0 on success, -1 on failure.
+ */
+int remove_node_to_list_ft(const char* path, struct file_time *root);
 
 /**
  * @brief Finds a file_time node by path in the linked list.
@@ -159,12 +173,12 @@ int replace_nodes(json_t *old_node, json_t *new_node, json_t *root);
  * Searches only for objects, not arrays.
  * 
  * @param root Root node to start search from.
- * @param node Node to find parent for.
+ * @param node Node to find parent and key for. 
  * @param parent[out] Found parent node.
- * @param key[out] Key in parent object.
+ * @param key[out] Node's key in parent object.
  * @return 0 on success, -ENOENT if not found, -EINVAL if node is root.
  */
-int find_parent_key(json_t *root, json_t *node, json_t **parent, 
+int find_parent_and_key(json_t *root, json_t *node, json_t **parent, 
 					const char **key);
 
 #endif /* JSONFS_H_SENTRY */

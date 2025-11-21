@@ -23,7 +23,7 @@
  * @brief FUSE filesystem operation handlers.
  *
  * Implements callback functions for FUSE filesystem operations,
- * including destroy, getattr, readdir, and read.
+ * including destroy, getattr, readdir, read, write, unlink.
  */
 
 #define FUSE_USE_VERSION 35
@@ -137,6 +137,37 @@ int jsonfs_write(const char *path, const char *buffer, size_t size,
 		res_write = write_json_file(path, buffer, size, offset, pd);
 	}
 	return res_write;
+}
+
+int jsonfs_unlink(const char *path)
+{
+	json_t *node = NULL;
+	json_t *parent = NULL;
+	const char *node_key = NULL;
+	int res_find;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	node = find_node_by_path(path, pd->root);
+	CHECK_POINTER(node, -ENOENT);
+
+	if (json_is_object(node)) { return -EISDIR; }
+
+	res_find = find_parent_and_key(pd->root, node, &parent, &node_key);
+	if (res_find < 0) {
+		return res_find;
+	}
+
+#	if 0
+	fprintf(stderr, "Key: %s\n", node_key);
+#	endif
+
+	json_object_del(parent, node_key);
+	remove_node_to_list_ft(path, pd->ft);
+
+	return 0;
 }
 
 void jsonfs_destroy(void *userdata)

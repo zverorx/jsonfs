@@ -47,6 +47,7 @@ extern int jsonfs_read(const char *path, char *buffer, size_t size,
 				off_t offset, struct fuse_file_info *fi);
 extern int jsonfs_write(const char *path, const char *buffer, size_t size,
 				 off_t offset, struct fuse_file_info *fi);
+extern int jsonfs_unlink(const char *path);
 extern void jsonfs_destroy(void *userdata);
 
 
@@ -107,12 +108,18 @@ void destroy_private_data(struct jsonfs_private_data *pd)
 	curr = pd->ft;
 	while(curr) {
 		next = curr->next_node;
-		free(curr->path);
-		free(curr);
+		free_file_time(curr);
 		curr = next;
 	}
 
 	free(pd);
+}
+
+void free_file_time(struct file_time *ft)
+{
+	free(ft->path);
+	free(ft);
+	return;
 }
 
 struct file_time *add_node_to_list_ft(const char* path, struct file_time *root, 
@@ -164,6 +171,41 @@ struct file_time *add_node_to_list_ft(const char* path, struct file_time *root,
 
 	return new_node;
 }
+
+int remove_node_to_list_ft(const char* path, struct file_time *root)
+{
+	struct file_time *node = NULL;
+	struct file_time *parent = NULL;
+	char *parent_path = NULL;
+	size_t path_size;
+
+	CHECK_POINTER(path, -1);
+	CHECK_POINTER(root, -1);
+
+	node = find_node_file_time(path, root);
+	CHECK_POINTER(node, -1);
+
+	parent_path = strdup(path);
+	path_size = strlen(path);
+
+	for (int i = path_size - 1; i >= 0 && path[i] != '/'; i--) {
+		parent_path[i] = '\0';
+	}
+
+#	if 0
+	fprintf(stderr, "Parent path: %s\n", parent_path);
+#	endif
+
+	parent = find_node_file_time(parent_path, root);
+	CHECK_POINTER(parent, -1);
+	parent->next_node = node->next_node;
+
+	free(parent_path);
+	free_file_time(node);
+
+	return 0;
+}
+
 struct file_time *find_node_file_time(const char *path, struct file_time *root)
 {
 	struct file_time *res = NULL;
@@ -226,6 +268,7 @@ struct fuse_operations get_fuse_op(void)
 		.readdir = jsonfs_readdir,
 		.read	 = jsonfs_read,
 		.write	 = jsonfs_write,
+		.unlink	 = jsonfs_unlink,
 		.destroy = jsonfs_destroy
 	};
 
@@ -334,7 +377,7 @@ int replace_nodes(json_t *old_node, json_t *new_node, json_t *root)
 	CHECK_POINTER(new_node, -EFAULT);
 	CHECK_POINTER(root, -EFAULT);
 
-	res_find = find_parent_key(root, old_node, &parent, &key);
+	res_find = find_parent_and_key(root, old_node, &parent, &key);
 	if (res_find) { return res_find; }
 
 	if (json_is_object(parent)) {
@@ -345,7 +388,7 @@ int replace_nodes(json_t *old_node, json_t *new_node, json_t *root)
 	return 0;
 }
 
-int find_parent_key(json_t *root, json_t *node, json_t **parent, 
+int find_parent_and_key(json_t *root, json_t *node, json_t **parent, 
 					const char **key)
 {
 	json_t *v = NULL;
@@ -367,7 +410,7 @@ int find_parent_key(json_t *root, json_t *node, json_t **parent,
 				return 0;
 			}
 
-			res_find = find_parent_key(v, node, parent, key);
+			res_find = find_parent_and_key(v, node, parent, key);
 			if (!res_find) { return 0; }
 		}
 	}
