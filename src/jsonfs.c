@@ -48,6 +48,7 @@ extern int jsonfs_read(const char *path, char *buffer, size_t size,
 extern int jsonfs_write(const char *path, const char *buffer, size_t size,
 				 off_t offset, struct fuse_file_info *fi);
 extern int jsonfs_unlink(const char *path);
+extern int jsonfs_rmdir (const char *path);
 extern void jsonfs_destroy(void *userdata);
 
 
@@ -269,6 +270,7 @@ struct fuse_operations get_fuse_op(void)
 		.read	 = jsonfs_read,
 		.write	 = jsonfs_write,
 		.unlink	 = jsonfs_unlink,
+		.rmdir	 = jsonfs_rmdir,
 		.destroy = jsonfs_destroy
 	};
 

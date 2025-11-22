@@ -327,3 +327,41 @@ int write_json_file(const char *path, const char *buffer, size_t size,
 		free(content);
 		return ret;
 }
+
+int rm_file(const char *path, int file_type, struct jsonfs_private_data *pd)
+{
+	json_t *node = NULL;
+	json_t *parent = NULL;
+	const char *node_key = NULL;
+	int res_find;
+	size_t size;
+
+	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(pd, -EFAULT);
+	if (file_type != S_IFREG && file_type != S_IFDIR) { return -EINVAL; }
+
+	node = find_node_by_path(path, pd->root);
+	if (!node && is_special_file(path)) { return -EPERM; }
+	else if (!node) { return -ENOENT; }
+
+	switch (file_type) {
+		case S_IFREG:
+			if (json_is_object(node)) { return -EISDIR; }
+			break;
+		case S_IFDIR:
+			if (!json_is_object(node)) { return -ENOTDIR; }
+			if (strcmp(path, "/") == 0) { return -EBUSY; }
+
+			size = json_object_size(node);
+			if (size) { return -ENOTEMPTY; }	
+			break;
+	}
+
+	res_find = find_parent_and_key(pd->root, node, &parent, &node_key);
+	if (res_find < 0) { return res_find; }
+
+	json_object_del(parent, node_key);
+	remove_node_to_list_ft(path, pd->ft);
+
+	return 0;
+}
