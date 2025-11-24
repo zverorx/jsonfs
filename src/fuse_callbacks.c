@@ -169,6 +169,8 @@ int jsonfs_mknod(const char *path, mode_t mode, dev_t dev)
 {
 	int res_mk;
 
+	if (strstr(path, ".sw")) { return -EPERM; }
+
 	struct fuse_context *ctx = fuse_get_context();
 	struct jsonfs_private_data *pd = ctx->private_data;
 	CHECK_POINTER(pd, -ENOMEM);
