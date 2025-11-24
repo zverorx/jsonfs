@@ -152,7 +152,7 @@ int jsonfs_unlink(const char *path)
 	return res_rm;
 }
 
-int jsonfs_rmdir (const char *path)
+int jsonfs_rmdir(const char *path)
 {
 	int res_rm;
 
@@ -163,6 +163,58 @@ int jsonfs_rmdir (const char *path)
 	res_rm = rm_file(path, S_IFDIR, pd);
 	
 	return res_rm;
+}
+
+int jsonfs_mknod(const char *path, mode_t mode, dev_t dev)
+{
+	int res_mk;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+	
+	res_mk = make_file(path, mode, pd);
+
+	return res_mk;
+}
+
+int jsonfs_mkdir(const char *path, mode_t mode)
+{
+	int res_mk;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+	
+	res_mk = make_file(path, mode, pd);
+
+	return res_mk;
+}
+
+int jsonfs_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi)
+{
+	struct file_time *ft = NULL;
+	(void) fi;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	ft = find_node_file_time(path, pd->ft);
+	if (ft) {
+		ft->atime = tv[0].tv_sec;
+		ft->mtime = tv[1].tv_sec;
+		ft->ctime =	tv[1].tv_sec; 
+	}
+	else {
+		add_node_to_list_ft(path, pd->ft, 0);
+		ft = find_node_file_time(path, pd->ft);
+		ft->atime = tv[0].tv_sec;
+		ft->mtime = tv[1].tv_sec;
+		ft->ctime =	tv[1].tv_sec; 
+	}
+
+    return 0;
 }
 
 void jsonfs_destroy(void *userdata)

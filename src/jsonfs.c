@@ -49,6 +49,9 @@ extern int jsonfs_write(const char *path, const char *buffer, size_t size,
 				 off_t offset, struct fuse_file_info *fi);
 extern int jsonfs_unlink(const char *path);
 extern int jsonfs_rmdir (const char *path);
+extern int jsonfs_mknod(const char *path, mode_t mode, dev_t dev);
+extern int jsonfs_mkdir(const char *path, mode_t mode);
+extern int jsonfs_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi);
 extern void jsonfs_destroy(void *userdata);
 
 
@@ -271,6 +274,9 @@ struct fuse_operations get_fuse_op(void)
 		.write	 = jsonfs_write,
 		.unlink	 = jsonfs_unlink,
 		.rmdir	 = jsonfs_rmdir,
+		.mknod	 = jsonfs_mknod,
+ 		.mkdir	 = jsonfs_mkdir,
+		.utimens = jsonfs_utimens,
 		.destroy = jsonfs_destroy
 	};
 

@@ -112,7 +112,7 @@ int write_special_file(const char *path, const char *buffer, size_t size,
 int write_json_file(const char *path, const char *buffer, size_t size,
 					off_t offset, struct jsonfs_private_data *pd);
 /**
- * @brief Deleting files in the file system.
+ * @brief Deleting files in the filesystem.
  *
  * @param path Absolute path, must not be NULL. 
  * @param file_type Constants S_IFREG or S_IFDIR.
@@ -121,5 +121,16 @@ int write_json_file(const char *path, const char *buffer, size_t size,
  * @return 0 on success, negative error code on failure.
  */
 int rm_file(const char *path, int file_type, struct jsonfs_private_data *pd);
+
+/**
+ * @brief Creates files or directories in the filesystem.
+ * 
+ * @param path The absolute path to the file/directory to create.
+ * @param mode File type and permissions.
+ * @param pd Private filesystem data from FUSE context.
+ * 
+ * @return 0 on success, negative error code on failure.
+ */
+int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd);
 
 #endif /* HANDLERS_H_SENTRY */

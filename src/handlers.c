@@ -365,3 +365,93 @@ int rm_file(const char *path, int file_type, struct jsonfs_private_data *pd)
 
 	return 0;
 }
+
+int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd)
+{
+	int res_set;
+	size_t path_size;
+	size_t key_size;
+	char key[MID_SIZE];
+	char *parent_path = NULL;
+	json_t *new_node = NULL;
+	json_t *parent = NULL;
+	struct file_time *ft = NULL;
+	time_t now = time(NULL);
+	char type;
+
+	if ((mode & S_IFMT) == S_IFREG) {
+		type = 'r';
+	}
+	else if ((mode & S_IFMT) == 0) {
+		type = 'd';
+	}
+	else {
+		return -EINVAL; 
+	}
+
+	parent_path = strdup(path);
+	CHECK_POINTER(parent_path, -ENOMEM);
+
+	path_size = strlen(parent_path);
+	key_size = 0;
+
+	for (int i = path_size - 1; i >= 0; i--) {
+		if (parent_path[i] == '/') { 
+			key_size = path_size - i - 1;
+			if (key_size >= MID_SIZE) {
+				free(parent_path);
+				return -ENAMETOOLONG;
+			}
+			strncpy(key, &parent_path[i + 1], key_size);
+			key[key_size] = '\0';
+			parent_path[i + 1] = '\0';
+			break; 
+		}
+	}
+
+	if (key_size == 0) { 
+		free(parent_path); 
+		return -EINVAL; 
+	}
+
+	parent = find_node_by_path(parent_path, pd->root);
+	if (!parent) { 
+		free(parent_path); 
+		return -ENOENT; 
+	}
+
+	if (json_object_get(parent, key)) {
+	    free(parent_path);
+	    return -EEXIST;
+	}
+
+	if (type == 'r') {
+		new_node = json_string("");
+	}
+	else if (type == 'd') {
+		new_node = json_object();
+	}
+
+	if (!new_node) { 
+		free(parent_path); 
+		return -ENOMEM; 
+	}
+
+	res_set = json_object_set_new(parent, key, new_node);
+	if (res_set < 0) { 
+		free(parent_path);	
+		return -EINVAL; 
+	}
+
+	ft = find_node_file_time(path, pd->ft);
+	if (ft) {
+		ft->mtime = now;
+		ft->ctime = now;
+	}
+	else {
+		add_node_to_list_ft(path, pd->ft, SET_MTIME | SET_CTIME);
+	}
+
+	free(parent_path);
+	return 0;
+}
