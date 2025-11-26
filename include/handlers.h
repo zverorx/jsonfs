@@ -28,6 +28,8 @@
 #ifndef HANDLERS_H_SENTRY
 #define HANDLERS_H_SENTRY
 
+#include "jsonfs.h"
+
 /**
  * @brief Sets attributes for special files. Used in getattr.
  * 
@@ -39,7 +41,7 @@
  * @see is_special_file()
  */
 int getattr_special_file(const char *path, struct stat *st,
-						struct jsonfs_private_data *pd);
+						 struct jsonfs_private_data *pd);
 
 /**
  * @brief Sets attributes for JSON files and directories. 
@@ -50,7 +52,7 @@ int getattr_special_file(const char *path, struct stat *st,
  * @return return 0 if success, negative error code otherwize.
  */
 int getattr_json_file(const char *path, struct stat *st,
-						struct jsonfs_private_data *pd);
+					  struct jsonfs_private_data *pd);
 
 /**
  * @brief Reads content from special filesystem control files.

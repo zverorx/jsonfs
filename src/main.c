@@ -27,14 +27,13 @@
 
 #define FUSE_USE_VERSION 	35
 
-/* Includes */
 #include <jansson.h>
 #include <fuse.h>
-#include <string.h>
 #include <stdlib.h>
 
 #include "common.h"
 #include "jsonfs.h"
+#include "json_operations.h"
 
 int main(int argc, char **argv)
 {
@@ -53,7 +52,7 @@ int main(int argc, char **argv)
 	root = json_load_file(json_file, JSON_DECODE_ANY, &json_error);
 	CHECK_POINTER(root, EXIT_FAILURE);
 
-	correct_root = convert_to_obj(root, 1);
+	correct_root = normalize_json(root, 1);
 	CHECK_POINTER(correct_root, EXIT_FAILURE);
 	json_decref(root);
 

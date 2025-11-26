@@ -36,6 +36,8 @@
 
 #include "common.h"
 #include "jsonfs.h"
+#include "json_operations.h"
+#include "file_time.h"
 
 int getattr_special_file(const char *path, struct stat *st,
 						 struct jsonfs_private_data *pd)
@@ -106,7 +108,7 @@ int getattr_json_file(const char *path, struct stat *st,
 		st->st_ctime = pd->ft->ctime;
 	}
 
-	node = find_node_by_path(path, pd->root);
+	node = find_json_node(path, pd->root);
 	CHECK_POINTER(node, -ENOENT);
 
 	if (json_is_object(node)) {
@@ -184,7 +186,7 @@ int read_json_file(const char *path, char *buffer, size_t size,
 	CHECK_POINTER(path, -EFAULT);
 	CHECK_POINTER(pd, -EFAULT);
 
-	node = find_node_by_path(path, pd->root);
+	node = find_json_node(path, pd->root);
 	CHECK_POINTER(node, -ENOENT);
 	
 	text = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
@@ -270,7 +272,7 @@ int write_json_file(const char *path, const char *buffer, size_t size,
 	root = pd->root;
 	CHECK_POINTER(root, -EFAULT);
 
-	old_node = find_node_by_path(path, root);
+	old_node = find_json_node(path, root);
 	CHECK_POINTER(old_node, -ENOENT);
 
 	content = json_dumps(old_node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
@@ -304,7 +306,7 @@ int write_json_file(const char *path, const char *buffer, size_t size,
 	new_node = json_loads(content, JSON_DECODE_ANY, NULL);
 	if (!new_node) { ret = -EINVAL; goto handle_error; }
 
-	res_replace = replace_nodes(old_node, new_node, root);
+	res_replace = replace_json_nodes(old_node, new_node, root);
 	if (res_replace) { ret = -ENOENT; goto handle_error; }
 
 	pd->is_saved = 0;
@@ -340,7 +342,7 @@ int rm_file(const char *path, int file_type, struct jsonfs_private_data *pd)
 	CHECK_POINTER(pd, -EFAULT);
 	if (file_type != S_IFREG && file_type != S_IFDIR) { return -EINVAL; }
 
-	node = find_node_by_path(path, pd->root);
+	node = find_json_node(path, pd->root);
 	if (!node && is_special_file(path)) { return -EPERM; }
 	else if (!node) { return -ENOENT; }
 
@@ -414,7 +416,7 @@ int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd)
 		return -EINVAL; 
 	}
 
-	parent = find_node_by_path(parent_path, pd->root);
+	parent = find_json_node(parent_path, pd->root);
 	if (!parent) { 
 		free(parent_path); 
 		return -ENOENT; 

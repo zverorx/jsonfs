@@ -20,31 +20,11 @@
 
 /**
  * @file
- * @brief Common types, macros, and private data for JSONFS.
+ * @brief Common macros for JSONFS.
  */
 
 #ifndef COMMON_H_SENTRY
 #define COMMON_H_SENTRY
-
-#include <jansson.h>
-
-/* ================================= */
-/*              Enums                */
-/* ================================= */
-
-/**
- * @enum set_time
- * @see add_node_to_list_ft 
- */
-enum set_time {
-	SET_ATIME = 1,
-	SET_MTIME = 2,
-	SET_CTIME = 4
-};
-
-/* ================================= */
-/*              Macros               */
-/* ================================= */
 
 /**
  * @def SHRT_SIZE
@@ -109,49 +89,5 @@ enum set_time {
 			return -ENOMEM;										\
 		}														\
 	} while(0)
-
-/* ================================= */
-/*            Structures             */
-/* ================================= */
-
-/**
- * @struct jsonfs_private_data
- * @brief Private filesystem data. 
- * 
- * This structure is allocated in main() and passed to fuse_main(),
- * then made available via fuse_get_context()->private_data in all callbacks.
- */
-struct jsonfs_private_data {
-	json_t *root;				/**< Deserialized JSON document */
-	char *path_to_json_file;	/**< Absolute path to the source JSON file */
-	struct file_time *ft;		/**< Head of the file times linked list */
-	time_t mount_time;			/**< Filesystem mount time */
-	uid_t uid;					/**< User ID */
-	gid_t gid; 					/**< Group ID */
-	int is_saved;				/**< Save state: 1=no unsaved changes, 0=has unsaved changes */	
-};
-
-/**
- * @struct file_time
- * @brief File time metadata structure.
- * @see add_node_to_list_ft
- * @see find_node_file_time 
- */
-struct file_time {
-    char *path;                 /**< File/directory path */
-    time_t atime;               /**< Last access time */
-    time_t mtime;               /**< Last modification time */
-    time_t ctime;               /**< Last status change time */
-    struct file_time *next_node;/**< Next node in singly-linked list */
-};
-
-/**
- * @struct private_args
- * @brief Arguments for fuse_main().
- */
-struct private_args {
-	char **fuse_argv;	/**< argv for fuse_main() */
-	int fuse_argc;		/**< argc for fuse_main() */
-};
 
 #endif /* COMMON_H_SENTRY */

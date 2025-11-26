@@ -23,12 +23,12 @@
  * @brief FUSE filesystem operation handlers.
  *
  * Implements callback functions for FUSE filesystem operations,
- * including destroy, getattr, readdir, read, write, unlink, rmdir.
+ * including destroy, getattr, readdir, read, write, unlink, 
+ * rmdir, mknode, mkdir, utimens.
  */
 
 #define FUSE_USE_VERSION 35
 
-/* Includes */
 #include <jansson.h>
 #include <fuse.h>
 #include <string.h>
@@ -36,8 +36,9 @@
 #include <errno.h>
 
 #include "common.h"
-#include "jsonfs.h"
 #include "handlers.h"
+#include "file_time.h"
+#include "json_operations.h"
 
 int jsonfs_getattr(const char *path, struct stat *st,
 				   struct fuse_file_info *fi)
@@ -86,7 +87,7 @@ int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 		FILL_OR_RETURN(buffer, ".save");
 	}
 
-	node = find_node_by_path(path, pd->root);
+	node = find_json_node(path, pd->root);
 	CHECK_POINTER(node, -ENOENT);
 
 	if (!json_is_object(node)) {
