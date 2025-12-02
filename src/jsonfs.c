@@ -36,6 +36,9 @@
 
 extern int jsonfs_getattr(const char *path, struct stat *st,
 				          struct fuse_file_info *fi);
+extern int jsonfs_open(const char *path, struct fuse_file_info *fi);
+extern int jsonfs_rename(const char *old_path, const char *new_path, 
+						 unsigned int flags);
 extern int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 				          off_t offset, struct fuse_file_info *fi,
 				          enum fuse_readdir_flags flags);
@@ -55,6 +58,8 @@ struct fuse_operations get_fuse_op(void)
 {
 	struct fuse_operations op = {
 		.getattr = jsonfs_getattr,
+		.open	 = jsonfs_open,
+		.rename	 = jsonfs_rename,
 		.readdir = jsonfs_readdir,
 		.read	 = jsonfs_read,
 		.write	 = jsonfs_write,

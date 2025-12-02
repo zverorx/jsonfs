@@ -105,4 +105,18 @@ int count_subdirs(json_t *obj);
  */
 int is_special_file(const char *path);
 
+/**
+ * @brief Separate file path into parent directory and basename.
+ * 
+ * @param path File path to for separation.
+ * @param parent_path[out] Pointer to parent directory path.
+ *                         Returns "/" for root, "." for current directory,
+ *                         or parent path without trailing slash.
+ * @param basename[out] Name of file/directory without parent path.
+ * 						Returns empty string for root path "/",
+ * 
+ * @return 0 on success, -1 on failure.
+ */
+int separate_filepath(const char *path, char **parent_path, char **basename);
+
 #endif /* JSON_OPERATIONS_H_SENTRY */

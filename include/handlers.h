@@ -135,4 +135,16 @@ int rm_file(const char *path, int file_type, struct jsonfs_private_data *pd);
  */
 int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd);
 
+/**
+ * @brief Renaming and moving files and directories.
+ * 
+ * @param old_path The absolute path to the source file.
+ * @param new_path The absolute path to the dest file/directory.
+ * @param pd Private filesystem data from FUSE context.
+ *
+ * @return 0 on success, negative error code on failure.
+ */
+int rename_file(const char *old_path, const char *new_path, 
+				struct jsonfs_private_data *pd);
+
 #endif /* HANDLERS_H_SENTRY */

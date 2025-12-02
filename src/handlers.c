@@ -119,7 +119,7 @@ int getattr_json_file(const char *path, struct stat *st,
 		st->st_mode = S_IFREG | 0666;
 		st->st_nlink = 1;
 		char *str = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
-		CHECK_POINTER(str, 1);
+		CHECK_POINTER(str, -ENOMEM);
 		st->st_size = str ? strlen(str) : 0;
 		free(str);
 	}
@@ -295,9 +295,9 @@ int write_json_file(const char *path, const char *buffer, size_t size,
 
 #	if 0
 	fprintf(stderr, "content: %s\n", content);
-	fprintf(stderr, "content_len: %d\n", content_len);
-	fprintf(stderr, "size: %d\n", size);
-	fprintf(stderr, "offset: %d\n", offset);
+	fprintf(stderr, "content_len: %ld\n", content_len);
+	fprintf(stderr, "size: %ld\n", size);
+	fprintf(stderr, "offset: %ld\n", offset);
 	for(int i = 0; i < size; i++) {
 		fprintf(stderr, "el[%d]: %c\n", i, buffer[i]);
 	}
@@ -442,7 +442,7 @@ int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd)
 	res_set = json_object_set_new(parent, key, new_node);
 	if (res_set < 0) { 
 		free(parent_path);	
-		return -EINVAL; 
+		return -EIO; 
 	}
 
 	ft = find_node_file_time(path, pd->ft);
@@ -456,4 +456,92 @@ int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd)
 
 	free(parent_path);
 	return 0;
+}
+
+int rename_file(const char *old_path, const char *new_path, 
+				struct jsonfs_private_data *pd)
+{
+	json_t *node = NULL;
+	json_t *old_parent = NULL;
+	json_t *new_parent = NULL;
+	char *old_parent_path = NULL;
+	char *old_name = NULL;
+	char *new_parent_path = NULL;
+	char *new_name = NULL;
+	int res_sep;
+	int res_set;
+	int res_rename = 0;
+
+	CHECK_POINTER(old_path, -EINVAL);
+	CHECK_POINTER(new_path, -EINVAL);
+	CHECK_POINTER(pd, -EINVAL);
+
+ 	node = find_json_node(old_path, pd->root);
+ 	CHECK_POINTER(node, -ENOENT);
+
+	res_sep = separate_filepath(old_path, &old_parent_path, &old_name);
+	if (res_sep < 0) {
+		res_rename = -EINVAL;
+		goto handle_error;
+	}
+
+	res_sep = separate_filepath(new_path, &new_parent_path, &new_name);
+	if (res_sep < 0) {
+		res_rename = -EINVAL;
+		goto handle_error;
+	}
+
+	if (strcmp(old_parent_path, ".") == 0) {
+		old_parent = pd->root;
+	}
+	else {
+		old_parent = find_json_node(old_parent_path, pd->root);
+		if (!old_parent) {
+			res_rename = -ENOENT;
+			goto handle_error;
+		}
+	}
+
+	if (strcmp(new_parent_path, ".") == 0) {
+		new_parent = pd->root;
+	}
+	else {
+		new_parent = find_json_node(new_parent_path, pd->root);
+		if (!new_parent) {
+			res_rename = -ENOENT;
+			goto handle_error;
+		}
+	}
+
+	if (!json_is_object(new_parent)) {
+		res_rename = -ENOTDIR;
+		goto handle_error;
+	}
+
+	if (strncmp(old_path, new_path, strlen(old_path)) == 0 &&
+		(strlen(new_path) > strlen(old_path)) &&
+		new_path[strlen(old_path)] == '/') {
+		res_rename = -EINVAL;
+		goto handle_error;
+	}
+
+	json_incref(node);
+
+	res_set = json_object_set_new(new_parent, new_name, node);
+	if (res_set < 0) {
+		json_decref(node);
+		res_rename = -EIO;
+		goto handle_error;
+	}
+
+	json_object_del(old_parent, old_name);
+
+	remove_node_to_list_ft(old_path, pd->ft);
+
+	handle_error:
+		free(old_parent_path);
+    	free(old_name);
+    	free(new_parent_path);
+   		free(new_name);
+		return res_rename;
 }

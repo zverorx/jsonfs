@@ -24,7 +24,7 @@
  *
  * Implements callback functions for FUSE filesystem operations,
  * including destroy, getattr, readdir, read, write, unlink, 
- * rmdir, mknode, mkdir, utimens.
+ * rmdir, mknode, mkdir, utimens, open, rename.
  */
 
 #define FUSE_USE_VERSION 35
@@ -44,7 +44,6 @@ int jsonfs_getattr(const char *path, struct stat *st,
 				   struct fuse_file_info *fi)
 {
 	int res_getattr;
-
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
@@ -65,13 +64,44 @@ int jsonfs_getattr(const char *path, struct stat *st,
 	return 0;
 }
 
+int jsonfs_open(const char *path, struct fuse_file_info *fi)
+{
+	json_t *node = NULL;
+	(void) fi;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	node = find_json_node(path, pd->root);
+	if (!node && !is_special_file(path)) {
+		return -ENOENT;
+	}
+
+	return 0;
+}
+
+int jsonfs_rename(const char *old_path, const char *new_path, unsigned int flags)
+{
+	int res_rename;
+	(void) flags;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	res_rename = rename_file(old_path, new_path, pd);
+
+	return res_rename;
+}
+
 int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 				   off_t offset, struct fuse_file_info *fi,
 				   enum fuse_readdir_flags flags)
 {
-	json_t *node;
-	const char *key;
-    json_t *value;
+	json_t *node = NULL;
+	const char *key = NULL;
+	json_t *value = NULL;
 
 	(void) offset;
 	(void) fi;

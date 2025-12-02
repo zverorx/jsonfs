@@ -193,3 +193,54 @@ int is_special_file(const char *path)
 	}
 	return 0;
 }
+
+int separate_filepath(const char *path, char **parent_path, char **basename)
+{
+	char *path_dup = NULL;
+	char *last_slash = NULL;
+
+	CHECK_POINTER(path, -1);
+	CHECK_POINTER(parent_path, -1);
+	CHECK_POINTER(basename, -1);
+
+	*parent_path = NULL;
+	*basename = NULL;
+
+	path_dup = strdup(path);
+	CHECK_POINTER(path_dup, -1);
+
+	last_slash = strrchr(path_dup, '/');
+
+	if (last_slash) {
+		*last_slash = '\0';
+
+		*basename = strdup(last_slash + 1);
+		if (!*basename) { goto handle_error; }
+
+		if (path_dup[0] == '\0') {
+			*parent_path = strdup("/");
+			if (!*parent_path) { goto handle_error; }
+		}
+		else {
+			*parent_path = path_dup;
+			path_dup = NULL;
+		}
+	}
+	else {
+		*basename = path_dup;
+		path_dup = NULL;
+		if (!*basename) { goto handle_error; }
+
+		*parent_path = strdup(".");
+		if (!*parent_path) { goto handle_error; }
+	}
+
+	free(path_dup);
+	return 0;
+
+	handle_error:
+		free(path_dup);
+		free(*parent_path);
+		free(*basename);
+		return -1;
+}
