@@ -152,7 +152,7 @@ int find_parent_and_key(json_t *root, json_t *node, json_t **parent,
 
 	if (json_is_object(root)) {
 		json_object_foreach(root, k, v) {
-			if (json_equal(node, v)) {
+			if (node == v) {
 				*parent = root;
 				*key = k;
 				return 0;

@@ -320,7 +320,6 @@ int write_json_file(const char *path, const char *buffer, size_t size,
 		add_node_to_list_ft(path, pd->ft, SET_MTIME | SET_CTIME);
 	}
 
-	json_decref(old_node);
 	free(content);
 	return ret;
 
