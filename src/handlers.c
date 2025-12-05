@@ -284,23 +284,26 @@ int write_json_file(const char *path, const char *buffer, size_t size,
 		res_realloc = realloc(content, size + offset + 1);
 		if (!res_realloc) { ret = -ENOMEM; goto handle_error; }
 		content = res_realloc;
-	}
 
-	content_len = size + offset;
-	content[content_len] = '\0';
+		content_len = size + offset;
+		content[content_len] = '\0';
+	}
 
 	for(int i = offset, j = 0; i < content_len && j < size; i++, j++) {
 		content[i] = buffer[j];
 	}
 
 #	if 0
+	fputs("=== start write ===\n", stderr);
 	fprintf(stderr, "content: %s\n", content);
 	fprintf(stderr, "content_len: %ld\n", content_len);
 	fprintf(stderr, "size: %ld\n", size);
 	fprintf(stderr, "offset: %ld\n", offset);
+	fprintf(stderr, "buffer:\n");
 	for(int i = 0; i < size; i++) {
 		fprintf(stderr, "el[%d]: %c\n", i, buffer[i]);
 	}
+	fputs("=== end write ===\n", stderr);
 #	endif
 
 	new_node = json_loads(content, JSON_DECODE_ANY, NULL);
@@ -378,13 +381,13 @@ int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd)
 	json_t *parent = NULL;
 	struct file_time *ft = NULL;
 	time_t now = time(NULL);
-	char type;
+	int type;
 
 	if ((mode & S_IFMT) == S_IFREG) {
-		type = 'r';
+		type = S_IFREG;
 	}
 	else if ((mode & S_IFMT) == 0) {
-		type = 'd';
+		type = S_IFDIR;
 	}
 	else {
 		return -EINVAL; 
@@ -426,10 +429,10 @@ int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd)
 	    return -EEXIST;
 	}
 
-	if (type == 'r') {
-		new_node = json_string("");
+	if (type == S_IFREG) {
+		new_node = json_integer(0);
 	}
-	else if (type == 'd') {
+	else if (type == S_IFDIR) {
 		new_node = json_object();
 	}
 
@@ -543,4 +546,77 @@ int rename_file(const char *old_path, const char *new_path,
     	free(new_parent_path);
    		free(new_name);
 		return res_rename;
+}
+
+int trunc_json_file(const char *path, off_t offset, 
+					struct jsonfs_private_data *pd)
+{
+#	if 0
+	fputs("=== trunc start ===\n", stderr);
+	fprintf(stderr, "path: %s\n", path);
+	fprintf(stderr, "offset: %ld\n", offset);
+#	endif
+
+	size_t content_len;
+	json_t *old_node = NULL;
+	json_t *new_node = NULL;
+	struct file_time *ft = NULL;
+	time_t now = time(NULL);
+	char *res_realloc = NULL;
+	char *content = NULL;
+	int res_replace;
+	int ret = 0;
+
+	CHECK_POINTER(path, -EINVAL);
+	CHECK_POINTER(pd, -EINVAL);
+	if (offset < 0) { return -EINVAL; }
+
+	old_node = find_json_node(path, pd->root);
+	CHECK_POINTER(old_node, -ENOENT);
+
+	content = json_dumps(old_node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
+	CHECK_POINTER(content, -ENOMEM);
+
+	content_len = strlen(content);
+
+	if (offset == 0) {
+		new_node = json_integer(0); 
+		res_replace = replace_json_nodes(old_node, new_node, pd->root);
+		if (res_replace) { ret = -ENOENT; goto handle_error; }
+		return ret;
+	}
+
+	if (content_len != offset) {
+		res_realloc = realloc(content, offset + 1);
+		if (!res_realloc) { ret = -ENOMEM; goto handle_error; }
+		content = res_realloc;
+
+		content[offset] = '\0';
+
+		if (content_len < offset) {
+			memset(content + content_len, 0, offset - content_len);
+		}
+	}
+
+	new_node = json_loads(content, JSON_DECODE_ANY, NULL);
+	if (!new_node) { ret = -EINVAL; goto handle_error; }
+
+	res_replace = replace_json_nodes(old_node, new_node, pd->root);
+	if (res_replace) { ret = -ENOENT; goto handle_error; }
+
+	ft = find_node_file_time(path, pd->ft);
+	if (ft) {
+		ft->mtime = now;
+		ft->ctime = now;
+	}
+	else {
+		add_node_to_list_ft(path, pd->ft, SET_MTIME | SET_CTIME);
+	}
+
+	return ret;
+
+	handle_error:
+		json_decref(new_node);
+		free(content);
+		return ret;
 }

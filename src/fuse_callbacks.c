@@ -67,7 +67,6 @@ int jsonfs_getattr(const char *path, struct stat *st,
 int jsonfs_open(const char *path, struct fuse_file_info *fi)
 {
 	json_t *node = NULL;
-	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
 	struct jsonfs_private_data *pd = ctx->private_data;
@@ -76,6 +75,10 @@ int jsonfs_open(const char *path, struct fuse_file_info *fi)
 	node = find_json_node(path, pd->root);
 	if (!node && !is_special_file(path)) {
 		return -ENOENT;
+	}
+
+	if ((fi->flags & O_TRUNC) == O_TRUNC) {
+		trunc_json_file(path, 0, pd);
 	}
 
 	return 0;
@@ -248,6 +251,20 @@ int jsonfs_utimens(const char *path, const struct timespec tv[2], struct fuse_fi
 	}
 
     return 0;
+}
+
+int jsonfs_truncate(const char *path, off_t len, struct fuse_file_info *fi)
+{
+	int res_trunc;
+	(void) fi;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	res_trunc = trunc_json_file(path, len, pd);
+
+	return res_trunc;
 }
 
 void jsonfs_destroy(void *userdata)

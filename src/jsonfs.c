@@ -52,6 +52,7 @@ extern int jsonfs_mknod(const char *path, mode_t mode, dev_t dev);
 extern int jsonfs_mkdir(const char *path, mode_t mode);
 extern int jsonfs_utimens(const char *path, const struct timespec tv[2], 
                           struct fuse_file_info *fi);
+extern int jsonfs_truncate(const char *path, off_t len, struct fuse_file_info *fi);
 extern void jsonfs_destroy(void *userdata);
 
 struct fuse_operations get_fuse_op(void)
@@ -68,6 +69,7 @@ struct fuse_operations get_fuse_op(void)
 		.mknod	 = jsonfs_mknod,
  		.mkdir	 = jsonfs_mkdir,
 		.utimens = jsonfs_utimens,
+		.truncate= jsonfs_truncate,
 		.destroy = jsonfs_destroy
 	};
 

@@ -147,4 +147,16 @@ int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd);
 int rename_file(const char *old_path, const char *new_path, 
 				struct jsonfs_private_data *pd);
 
+/**
+ * @brief Truncating the file size.
+ * 
+ * @param path The absolute path to the file.
+ * @param offset The number of bytes to which the truncation occurs.
+ * @param pd Private filesystem data from FUSE context.
+ * 
+ * @return 0 on success, negative error code on failure.
+ */
+int trunc_json_file(const char *path, off_t offset, 
+					struct jsonfs_private_data *pd);
+
 #endif /* HANDLERS_H_SENTRY */
