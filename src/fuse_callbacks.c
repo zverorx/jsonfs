@@ -24,7 +24,7 @@
  *
  * Implements callback functions for FUSE filesystem operations,
  * including destroy, getattr, readdir, read, write, unlink, 
- * rmdir, mknode, mkdir, utimens, open, rename.
+ * rmdir, mknode, mkdir, utimens, open, rename, truncate.
  */
 
 #define FUSE_USE_VERSION 35
@@ -66,18 +66,11 @@ int jsonfs_getattr(const char *path, struct stat *st,
 
 int jsonfs_open(const char *path, struct fuse_file_info *fi)
 {
-	json_t *node = NULL;
-
-	struct fuse_context *ctx = fuse_get_context();
-	struct jsonfs_private_data *pd = ctx->private_data;
-	CHECK_POINTER(pd, -ENOMEM);
-
-	node = find_json_node(path, pd->root);
-	if (!node && !is_special_file(path)) {
-		return -ENOENT;
-	}
-
 	if ((fi->flags & O_TRUNC) == O_TRUNC) {
+		struct fuse_context *ctx = fuse_get_context();
+		struct jsonfs_private_data *pd = ctx->private_data;
+		CHECK_POINTER(pd, -ENOMEM);
+
 		trunc_json_file(path, 0, pd);
 	}
 
