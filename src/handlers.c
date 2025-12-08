@@ -112,7 +112,7 @@ int getattr_json_file(const char *path, struct stat *st,
 	CHECK_POINTER(node, -ENOENT);
 
 	if (json_is_object(node)) {
-		st->st_mode = S_IFDIR | 0555;
+		st->st_mode = S_IFDIR | 0775;
 		st->st_nlink = 2 + count_subdirs(node);
 	}
 	else {
