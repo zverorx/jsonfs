@@ -1,5 +1,5 @@
 {
-  "string": "hello",
+  "string/str/0": "hello",
   "строка": "привет",
   "int": 42,
   "float": 3.14,
