@@ -53,10 +53,20 @@
  * @brief Prefix for virtual files representing array elements and scalar values.
  * 
  * Used for files/directories that don't exist in original JSON:
- * - array indices: _$0, _$1, _$2
- * - scalar values: _$scalar
+ * - array indices: @0, @1, @2
+ * - scalar values: @scalar
  */
-#define SPECIAL_PREFIX	"_$"
+#define SPECIAL_PREFIX	"@"
+
+/**
+ * @def SPECIAL_PREFIX_SLASH
+ * @brief A special representation of the "/" symbol if it is in the key name.
+ * 
+ * Example:
+ * "key/key" in JSON file
+ * key@2Fkey as a file
+ */
+#define SPECIAL_SLASH	SPECIAL_PREFIX"2F"
 
 /**
  * @def CHECK_POINTER
