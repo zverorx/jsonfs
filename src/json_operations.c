@@ -34,36 +34,34 @@
 
 json_t *find_json_node(const char *path, json_t *root)
 {
-	char *dup = NULL;
+	char *path_dup = NULL;
 	char *saveptr = NULL;
 
 	CHECK_POINTER(path, NULL);
 	CHECK_POINTER(root, NULL);
 
-	if (strcmp(path, "/") == 0) {
-		return root;
-	}
+	if (strcmp(path, "/") == 0) { return root; }
 
-	dup = strdup(path);
-	CHECK_POINTER(dup, NULL);
+	path_dup = strdup(path);
+	CHECK_POINTER(path_dup, NULL);
 
-	char *key = strtok_r(dup, "/", &saveptr);
-	if (!key) goto handle_error;
+	char *key = strtok_r(path_dup, "/", &saveptr);
+	if (!key) { goto handle_error; }
 
 	json_t *curr_obj = root;
 
 	while(key) {
-		if (!json_is_object(curr_obj)) goto handle_error;
+		if (!json_is_object(curr_obj)) { goto handle_error; }
 		curr_obj = json_object_get(curr_obj, key);
-		if (!curr_obj) goto handle_error;
+		if (!curr_obj) { goto handle_error; }
 		key = strtok_r(NULL, "/", &saveptr);
 	}
 
-	free(dup);
+	free(path_dup);
 	return curr_obj;
 
 	handle_error:
-		free(dup);
+		free(path_dup);
 		return NULL;
 }
 
@@ -94,6 +92,7 @@ json_t *normalize_json(json_t *root, int is_root)
 	json_t *obj = NULL;
 	json_t *value = NULL;
 	const char *key = NULL;
+	char *transform_key;
 	json_t *json_copy_ret = NULL;
 	json_t *converted_val = NULL;
 	size_t i;
@@ -106,7 +105,13 @@ json_t *normalize_json(json_t *root, int is_root)
         json_object_foreach(root, key, value) {
             converted_val = normalize_json(value, 0);
             CHECK_POINTER(converted_val, NULL);
-            json_object_set_new(obj, key, converted_val);
+			if (strchr(key, '/')) {
+				transform_key = replace_slash_in_key(key);
+            	json_object_set_new(obj, transform_key, converted_val);
+			}
+			else {
+            	json_object_set_new(obj, key, converted_val);
+			}
         }
 	}
 	else if (json_is_array(root)) {
@@ -243,4 +248,55 @@ int separate_filepath(const char *path, char **parent_path, char **basename)
 		free(*parent_path);
 		free(*basename);
 		return -1;
+}
+
+char *replace_slash_in_key(const char *key)
+{
+	char *key_dup = NULL;
+	char *new_key = NULL;
+	char *part_of_key = NULL;
+	char *saveptr = NULL;
+	size_t offset = 0;
+	int count_slash = 0;
+	int is_first_part = 1;
+
+	CHECK_POINTER(key, NULL);
+
+	key_dup = strdup(key);
+	if (!key_dup) { goto handle_error; }
+
+	for (int i = 0; i < strlen(key_dup); i++) {
+		if (key_dup[i] == '/') { count_slash++; }
+	}
+
+	new_key = calloc(1, strlen(key) + strlen(SPECIAL_SLASH) * count_slash);
+	if (!new_key) { goto handle_error; }
+
+	part_of_key = strtok_r(key_dup, "/", &saveptr);
+	while (part_of_key) {
+		if (!is_first_part) {
+            snprintf(new_key + offset, 
+                     strlen(SPECIAL_SLASH) + 1,
+                     "%s",
+                     SPECIAL_SLASH);
+            offset += strlen(SPECIAL_SLASH);
+        }
+        is_first_part = 0;
+
+        snprintf(new_key + offset, 
+                 strlen(part_of_key) + 1,
+                 "%s",
+                 part_of_key);
+        offset += strlen(part_of_key);
+
+        part_of_key = strtok_r(NULL, "/", &saveptr);
+	}
+
+	free(key_dup);
+	return new_key;
+
+	handle_error:
+		free(key_dup);
+		free(new_key);
+		return NULL;
 }

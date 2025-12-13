@@ -119,4 +119,13 @@ int is_special_file(const char *path);
  */
 int separate_filepath(const char *path, char **parent_path, char **basename);
 
+/**
+ * @brief Replaces the '/' character in the key with SPECIAL_SLASH.
+ * @param key JSON key.
+ * @return New key. The caller must be free.
+ * @see SPECIAL_SLASH
+ * @see normalize_json
+ */
+char *replace_slash_in_key(const char *key);
+
 #endif /* JSON_OPERATIONS_H_SENTRY */
