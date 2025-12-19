@@ -106,7 +106,7 @@ json_t *normalize_json(json_t *root, int is_root)
             converted_val = normalize_json(value, 0);
             CHECK_POINTER(converted_val, NULL);
 			if (strchr(key, '/')) {
-				transform_key = replace_slash_in_key(key);
+				transform_key = replace_slash(key);
             	json_object_set_new(obj, transform_key, converted_val);
 			}
 			else {
@@ -139,6 +139,50 @@ json_t *normalize_json(json_t *root, int is_root)
     }
 
 	return obj;
+}
+
+json_t *denormalize_json(json_t *root, int is_root)
+{
+	json_t *root_dup = NULL;
+    json_t *scal_value = NULL;
+	json_t *node_with_slash[MID_SIZE];
+	json_t *parent = NULL;
+	json_t *node_dup = NULL;
+	const char *key = NULL;
+	char *transform_key = NULL;
+	int res_find_parent;
+	int prefix_found;
+	int count;
+
+	(void) is_root;
+
+	if (!json_is_object(root)) { return NULL; }
+
+	root_dup = json_deep_copy(root);
+	if (!root_dup) { return NULL; }
+
+	scal_value = json_object_get(root_dup, SPECIAL_PREFIX"scalar");
+    if (scal_value) { return scal_value; }
+
+	prefix_found = spec_prefix_is_present(root_dup);
+	if (!prefix_found) { return root_dup; }
+
+	count = find_keys_with_spec_slash(root_dup, node_with_slash, MID_SIZE, 0);
+	for (int i = count - 1; i >=  0; i--) {
+		res_find_parent = find_parent_and_key(root_dup, node_with_slash[i], &parent, &key);
+		if (res_find_parent) { goto handle_error; }
+
+		transform_key = reverse_replace_slash(key);
+		node_dup = json_deep_copy(node_with_slash[i]);
+		
+		json_object_set_new(parent, transform_key, node_dup);
+		json_object_del(parent, key);
+	}
+
+    return root_dup;
+	handle_error:
+		json_decref(root_dup);
+		return NULL;
 }
 
 int find_parent_and_key(json_t *root, json_t *node, json_t **parent, 
@@ -250,7 +294,7 @@ int separate_filepath(const char *path, char **parent_path, char **basename)
 		return -1;
 }
 
-char *replace_slash_in_key(const char *key)
+char *replace_slash(const char *key)
 {
 	char *key_dup = NULL;
 	char *new_key = NULL;
@@ -299,4 +343,71 @@ char *replace_slash_in_key(const char *key)
 		free(key_dup);
 		free(new_key);
 		return NULL;
+}
+
+char *reverse_replace_slash(const char *key)
+{
+	char *key_dup = NULL;
+    char *ptr = NULL;
+
+	CHECK_POINTER(key, NULL);
+
+	key_dup = strdup(key);
+	if (!key_dup) { goto handle_error; }
+
+	ptr = key_dup;
+    while ((ptr = strstr(ptr, SPECIAL_SLASH)) != NULL) {
+        *ptr = '/';
+        memmove(ptr + 1, ptr + strlen(SPECIAL_SLASH), 
+                strlen(ptr + strlen(SPECIAL_SLASH)) + 1);
+        ptr++;
+    }
+   
+    return key_dup;
+
+	handle_error:
+		free(key_dup);
+		return NULL;
+}
+
+int spec_prefix_is_present(json_t *root)
+{
+	const char *key = NULL;
+	json_t *value = NULL;
+	int found = 0;
+
+	json_object_foreach(root, key, value) {
+		if (strstr(key, SPECIAL_PREFIX)) {
+			return 1;
+		}
+
+		if (json_is_object(value)) { 
+			found = spec_prefix_is_present(value); 
+		}
+
+		if (found) { return 1; }
+	}
+
+	return 0;
+}
+
+int find_keys_with_spec_slash(json_t *root, json_t **results, int max_results, int count)
+{
+    const char *key;
+    json_t *value = NULL;
+    
+    json_object_foreach(root, key, value) {
+        if (strstr(key, SPECIAL_SLASH)) {
+            if (count < max_results) {
+                results[count] = value;
+				count++;
+            }
+        }
+        
+        if (json_is_object(value)) {
+            count = find_keys_with_spec_slash(value, results, max_results, count);
+        }
+    }
+    
+    return count;
 }

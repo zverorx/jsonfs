@@ -55,18 +55,31 @@ json_t *find_json_node(const char *path, json_t *root);
  */
 
 int replace_json_nodes(json_t *old_node, json_t *new_node, json_t *root);
+
 /**
  * @brief Converts JSON to object-only representation for filesystem.
  * @param root JSON value (object, array, or scalar).
  * @param is_root Flag indicating if this is the root level (1) or nested (0).
  * @return New independent JSON object:
- *         - Arrays become {"_$0":..., "_$1":...} with underscore-prefixed keys.
- *         - Scalars at root become {"_$scalar": value}.
- * @note Underscore-dollars prefixes provide unambiguous identification of
- *       converted arrays (_$0, _$1...) and root scalars (_$scalar).
+ *         - Arrays become {"@0":..., "@1":...} with underscore-prefixed keys.
+ *         - Scalars at root become {"@scalar": value}.
+ * @note SPECIAL_PREFIX provide unambiguous identification of
+ *       converted arrays (@0, @1...) and root scalars (@scalar).
  *       Caller must json_decref() the result.
  */
 json_t *normalize_json(json_t *root, int is_root);
+
+/**
+ * @brief Converts JSON from object-only representation to diverse.
+ * @param root JSON value (result of normalize_json).
+ * @param is_root Flag indicating if this is the root level (1) or nested (0).
+ * @return New JSON value in standard polymorphic form:
+ *         - Objects with sequential "@" keys become arrays.
+ *         - Objects with "@scalar" key become scalar.
+ * @note Caller must json_decref() the result.
+ * @see normalize_json
+ */
+json_t *denormalize_json(json_t *root, int is_root);
 
 /**
  * @brief Find parent and key for given JSON node.
@@ -126,6 +139,32 @@ int separate_filepath(const char *path, char **parent_path, char **basename);
  * @see SPECIAL_SLASH
  * @see normalize_json
  */
-char *replace_slash_in_key(const char *key);
+char *replace_slash(const char *key);
+
+/**
+ * @brief Replaces the SPECIAL_SLASH in the key with '/'.
+ * @param key JSON key.
+ * @return New key. The caller must be free.
+ * @see SPECIAL_SLASH
+ * @see denormalize_json
+ */
+char *reverse_replace_slash(const char *key);
+
+/**
+ * @brief Checking for keys containing "@".
+ * @param root Root node to start search from.
+ * @return 1 if there is, 0 otherwise.
+ */
+int spec_prefix_is_present(json_t *root);
+
+/**
+ * @brief Search for keys containing SPECIAL_SLASH./
+ * @param root Root node to start search from.
+ * @param results Storage of links to found nodes in root.
+ * @param max_results Size of the results.
+ * @param count The number of nodes found in root, an incremental value, is 0 when called.
+ * @return Increment of the count parameter, the number of nodes found.
+ */
+int find_keys_with_spec_slash(json_t *root, json_t **results, int max_results, int count);
 
 #endif /* JSON_OPERATIONS_H_SENTRY */

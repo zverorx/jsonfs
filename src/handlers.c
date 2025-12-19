@@ -220,6 +220,7 @@ int write_special_file(const char *path, const char *buffer, size_t size,
 	int res_save;
 	time_t now = time(NULL);
 	struct file_time *ft = NULL;
+	json_t *saved_json = NULL;
 
 	CHECK_POINTER(path, -EFAULT);
 	CHECK_POINTER(buffer, -EFAULT);
@@ -233,9 +234,14 @@ int write_special_file(const char *path, const char *buffer, size_t size,
 		return -EACCES;
 	}
 
-	res_save = json_dump_file(pd->root, pd->path_to_json_file, 
-							  JSON_INDENT(2) | JSON_ENCODE_ANY);
+	saved_json = denormalize_json(pd->root, 1); 
+	CHECK_POINTER(saved_json, -EINVAL);
+
+	res_save = json_dump_file(saved_json, pd->path_to_json_file,
+							  JSON_INDENT(2) | JSON_ENCODE_ANY | 
+							  JSON_REAL_PRECISION(10));
 	if (res_save < 0) { return -EINVAL; }
+	json_decref(saved_json);
 
 	pd->is_saved = 1;
 
