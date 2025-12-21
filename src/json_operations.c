@@ -141,46 +141,71 @@ json_t *normalize_json(json_t *root, int is_root)
 	return obj;
 }
 
-json_t *denormalize_json(json_t *root, int is_root)
+json_t *denormalize_json(json_t *root)
 {
 	json_t *root_dup = NULL;
     json_t *scal_value = NULL;
 	json_t *node_with_slash[MID_SIZE];
+	json_t *node_array[MID_SIZE];
+	json_t *new_array = NULL;
 	json_t *parent = NULL;
 	json_t *node_dup = NULL;
+	json_t *value = NULL;
 	const char *key = NULL;
 	char *transform_key = NULL;
-	int res_find_parent;
+	int res;
 	int prefix_found;
 	int count;
-
-	(void) is_root;
 
 	if (!json_is_object(root)) { return NULL; }
 
 	root_dup = json_deep_copy(root);
 	if (!root_dup) { return NULL; }
 
-	scal_value = json_object_get(root_dup, SPECIAL_PREFIX"scalar");
-    if (scal_value) { return scal_value; }
-
 	prefix_found = spec_prefix_is_present(root_dup);
 	if (!prefix_found) { return root_dup; }
 
+	scal_value = json_object_get(root_dup, SPECIAL_PREFIX"scalar");
+    if (scal_value) { return scal_value; }
+
 	count = find_keys_with_spec_slash(root_dup, node_with_slash, MID_SIZE, 0);
 	for (int i = count - 1; i >=  0; i--) {
-		res_find_parent = find_parent_and_key(root_dup, node_with_slash[i], &parent, &key);
-		if (res_find_parent) { goto handle_error; }
+		res = find_parent_and_key(root_dup, node_with_slash[i], &parent, &key);
+		if (res) { goto handle_error; }
 
 		transform_key = reverse_replace_slash(key);
 		node_dup = json_deep_copy(node_with_slash[i]);
 		
 		json_object_set_new(parent, transform_key, node_dup);
 		json_object_del(parent, key);
+		free(transform_key);
+	}
+
+	count = find_array_in_normal_root(root_dup, node_array, MID_SIZE, 0);
+	for (int i = count - 1; i >= 0; i--) {
+		new_array = json_array();
+		json_object_foreach(node_array[i], key, value) {
+			node_dup = json_deep_copy(value);
+			json_array_append_new(new_array, node_dup);
+		}
+
+		res = find_parent_and_key(root_dup, node_array[i], &parent, &key);
+		if (res == -EINVAL) {
+			json_decref(root_dup);
+			return new_array;
+		}
+		else if (res) {
+			goto handle_error;
+		}
+		else {
+			res = json_object_set_new(parent, key, new_array);
+			if (res < 0) { goto handle_error; }
+		}
 	}
 
     return root_dup;
 	handle_error:
+		free(transform_key);
 		json_decref(root_dup);
 		return NULL;
 }
@@ -393,7 +418,7 @@ int spec_prefix_is_present(json_t *root)
 
 int find_keys_with_spec_slash(json_t *root, json_t **results, int max_results, int count)
 {
-    const char *key;
+    const char *key = NULL;
     json_t *value = NULL;
     
     json_object_foreach(root, key, value) {
@@ -410,4 +435,27 @@ int find_keys_with_spec_slash(json_t *root, json_t **results, int max_results, i
     }
     
     return count;
+}
+
+int find_array_in_normal_root(json_t *root, json_t **results, int max_results, int count)
+{
+    const char *key = NULL;
+    json_t *value = NULL;
+    
+    json_object_foreach(root, key, value) {
+        if (key[0] == '@' && !strstr(key, SPECIAL_SLASH)) {
+            results[count] = root;
+			count++;
+			break;	
+		}
+
+	}
+
+    json_object_foreach(root, key, value) {
+		if (json_is_object(value)) {
+			count = find_array_in_normal_root(value, results, max_results, count);
+		}
+	}
+
+	return count;
 }

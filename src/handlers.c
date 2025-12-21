@@ -234,7 +234,7 @@ int write_special_file(const char *path, const char *buffer, size_t size,
 		return -EACCES;
 	}
 
-	saved_json = denormalize_json(pd->root, 1); 
+	saved_json = denormalize_json(pd->root); 
 	CHECK_POINTER(saved_json, -EINVAL);
 
 	res_save = json_dump_file(saved_json, pd->path_to_json_file,

@@ -79,7 +79,7 @@ json_t *normalize_json(json_t *root, int is_root);
  * @note Caller must json_decref() the result.
  * @see normalize_json
  */
-json_t *denormalize_json(json_t *root, int is_root);
+json_t *denormalize_json(json_t *root);
 
 /**
  * @brief Find parent and key for given JSON node.
@@ -166,5 +166,7 @@ int spec_prefix_is_present(json_t *root);
  * @return Increment of the count parameter, the number of nodes found.
  */
 int find_keys_with_spec_slash(json_t *root, json_t **results, int max_results, int count);
+
+int find_array_in_normal_root(json_t *root, json_t **results, int max_results, int count);
 
 #endif /* JSON_OPERATIONS_H_SENTRY */
