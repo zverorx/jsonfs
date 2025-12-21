@@ -104,10 +104,11 @@ json_t *normalize_json(json_t *root, int is_root)
 	if (json_is_object(root)) {
         json_object_foreach(root, key, value) {
             converted_val = normalize_json(value, 0);
-            CHECK_POINTER(converted_val, NULL);
+			if (!converted_val) { goto handle_error; }
 			if (strchr(key, '/')) {
 				transform_key = replace_slash(key);
             	json_object_set_new(obj, transform_key, converted_val);
+				free(transform_key);
 			}
 			else {
             	json_object_set_new(obj, key, converted_val);
@@ -122,23 +123,27 @@ json_t *normalize_json(json_t *root, int is_root)
             snprintf(key, sizeof(key), "%s%zu", SPECIAL_PREFIX, i);
 
             converted_val = normalize_json(value, 0);
-            CHECK_POINTER(converted_val, NULL);
+			if (!converted_val) { goto handle_error; }
             json_object_set_new(obj, key, converted_val);
         }
 	} 
 	else {
 		if (is_root) {
 			json_copy_ret = json_copy(root);
-			CHECK_POINTER(json_copy_ret, NULL);
+			if (!json_copy_ret) { goto handle_error; }
 			json_object_set_new(obj, SPECIAL_PREFIX"scalar", json_copy_ret);
 		}
 		else {
+			json_decref(obj);
 			obj = json_copy(root);
 			CHECK_POINTER(obj, NULL);
 		}
     }
 
 	return obj;
+	handle_error:
+		json_decref(obj);
+		return NULL;
 }
 
 json_t *denormalize_json(json_t *root)
