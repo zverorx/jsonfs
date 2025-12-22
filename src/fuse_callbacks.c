@@ -54,14 +54,12 @@ int jsonfs_getattr(const char *path, struct stat *st,
 
 	if (is_special_file(path)) {
 		res_getattr = getattr_special_file(path, st, pd);
-		if (res_getattr) { return res_getattr; }
 	}
 	else {
 		res_getattr = getattr_json_file(path, st, pd);
-		if (res_getattr) { return res_getattr; }
 	}
 
-	return 0;
+	return res_getattr;
 }
 
 int jsonfs_mknod(const char *path, mode_t mode, dev_t dev)
@@ -75,6 +73,7 @@ int jsonfs_mknod(const char *path, mode_t mode, dev_t dev)
 	CHECK_POINTER(pd, -ENOMEM);
 	
 	res_mk = make_file(path, mode, pd);
+	if (!res_mk) { pd->is_saved = 0; }
 
 	return res_mk;
 }
@@ -88,6 +87,7 @@ int jsonfs_mkdir(const char *path, mode_t mode)
 	CHECK_POINTER(pd, -ENOMEM);
 	
 	res_mk = make_file(path, mode, pd);
+	if (!res_mk) { pd->is_saved = 0; }
 
 	return res_mk;
 }
@@ -101,6 +101,7 @@ int jsonfs_unlink(const char *path)
 	CHECK_POINTER(pd, -ENOMEM);
 
 	res_rm = rm_file(path, S_IFREG, pd);
+	if (!res_rm) { pd->is_saved = 0; }
 	
 	return res_rm;
 }
@@ -114,6 +115,7 @@ int jsonfs_rmdir(const char *path)
 	CHECK_POINTER(pd, -ENOMEM);
 
 	res_rm = rm_file(path, S_IFDIR, pd);
+	if (!res_rm) { pd->is_saved = 0; }
 	
 	return res_rm;
 }
@@ -128,6 +130,7 @@ int jsonfs_rename(const char *old_path, const char *new_path, unsigned int flags
 	CHECK_POINTER(pd, -ENOMEM);
 
 	res_rename = rename_file(old_path, new_path, pd);
+	if (!res_rename) { pd->is_saved = 0; }
 
 	return res_rename;
 }
@@ -191,10 +194,13 @@ int jsonfs_write(const char *path, const char *buffer, size_t size,
 
 	if (is_special_file(path)) {
 		res_write = write_special_file(path, buffer, size, offset, pd);
+		if (res_write >= 0) { pd->is_saved = 1; }
 	}
 	else {
 		res_write = write_json_file(path, buffer, size, offset, pd);
+		if (res_write >= 0) { pd->is_saved = 0; }
 	}
+
 	return res_write;
 }
 

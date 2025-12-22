@@ -546,8 +546,6 @@ int write_json_file(const char *path, const char *buffer, size_t size,
 	res_replace = replace_json_nodes(old_node, new_node, root);
 	if (res_replace) { ret = -ENOENT; goto handle_error; }
 
-	pd->is_saved = 0;
-
 	ft = find_node_file_time(path, pd->ft);
 	if (ft) {
 		ft->mtime = now;
@@ -594,8 +592,6 @@ int write_special_file(const char *path, const char *buffer, size_t size,
 							  JSON_REAL_PRECISION(10));
 	if (res_save < 0) { return -EINVAL; }
 	json_decref(saved_json);
-
-	pd->is_saved = 1;
 
 	ft = find_node_file_time(path, pd->ft);
 	if (ft) {
