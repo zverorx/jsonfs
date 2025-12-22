@@ -36,41 +36,41 @@
 
 extern int jsonfs_getattr(const char *path, struct stat *st,
 				          struct fuse_file_info *fi);
-extern int jsonfs_open(const char *path, struct fuse_file_info *fi);
+extern int jsonfs_mknod(const char *path, mode_t mode, dev_t dev);
+extern int jsonfs_mkdir(const char *path, mode_t mode);
+extern int jsonfs_unlink(const char *path);
+extern int jsonfs_rmdir (const char *path);
 extern int jsonfs_rename(const char *old_path, const char *new_path, 
 						 unsigned int flags);
-extern int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
-				          off_t offset, struct fuse_file_info *fi,
-				          enum fuse_readdir_flags flags);
+extern int jsonfs_truncate(const char *path, off_t len, struct fuse_file_info *fi);
+extern int jsonfs_open(const char *path, struct fuse_file_info *fi);
 extern int jsonfs_read(const char *path, char *buffer, size_t size,
 				       off_t offset, struct fuse_file_info *fi);
 extern int jsonfs_write(const char *path, const char *buffer, size_t size,
 				        off_t offset, struct fuse_file_info *fi);
-extern int jsonfs_unlink(const char *path);
-extern int jsonfs_rmdir (const char *path);
-extern int jsonfs_mknod(const char *path, mode_t mode, dev_t dev);
-extern int jsonfs_mkdir(const char *path, mode_t mode);
+extern int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
+				          off_t offset, struct fuse_file_info *fi,
+				          enum fuse_readdir_flags flags);
+extern void jsonfs_destroy(void *userdata);
 extern int jsonfs_utimens(const char *path, const struct timespec tv[2], 
                           struct fuse_file_info *fi);
-extern int jsonfs_truncate(const char *path, off_t len, struct fuse_file_info *fi);
-extern void jsonfs_destroy(void *userdata);
 
 struct fuse_operations get_fuse_op(void)
 {
 	struct fuse_operations op = {
 		.getattr = jsonfs_getattr,
-		.open	 = jsonfs_open,
-		.rename	 = jsonfs_rename,
-		.readdir = jsonfs_readdir,
-		.read	 = jsonfs_read,
-		.write	 = jsonfs_write,
-		.unlink	 = jsonfs_unlink,
-		.rmdir	 = jsonfs_rmdir,
 		.mknod	 = jsonfs_mknod,
  		.mkdir	 = jsonfs_mkdir,
-		.utimens = jsonfs_utimens,
+		.unlink	 = jsonfs_unlink,
+		.rmdir	 = jsonfs_rmdir,
+		.rename	 = jsonfs_rename,
 		.truncate= jsonfs_truncate,
-		.destroy = jsonfs_destroy
+		.open	 = jsonfs_open,
+		.read	 = jsonfs_read,
+		.write	 = jsonfs_write,
+		.readdir = jsonfs_readdir,
+		.destroy = jsonfs_destroy,
+		.utimens = jsonfs_utimens
 	};
 
 	return op;

@@ -21,6 +21,8 @@
 /**
  * @file 
  * @brief Contains definition of functions for working with struct file_time.
+ * 
+ * Function declarations, types and specifications can be found in file_time.h.
  */
 
 #include <string.h>
@@ -29,13 +31,6 @@
 
 #include "common.h"
 #include "file_time.h"
-
-void free_file_time(struct file_time *ft)
-{
-	free(ft->path);
-	free(ft);
-	return;
-}
 
 struct file_time *add_node_to_list_ft(const char* path, struct file_time *root, 
 									  enum set_time flags)
@@ -107,10 +102,6 @@ int remove_node_to_list_ft(const char* path, struct file_time *root)
 		parent_path[i] = '\0';
 	}
 
-#	if 0
-	fprintf(stderr, "Parent path: %s\n", parent_path);
-#	endif
-
 	parent = find_node_file_time(parent_path, root);
 	CHECK_POINTER(parent, -1);
 	parent->next_node = node->next_node;
@@ -139,4 +130,11 @@ struct file_time *find_node_file_time(const char *path, struct file_time *root)
 	}
 
 	return res;
+}
+
+void free_file_time(struct file_time *ft)
+{
+	free(ft->path);
+	free(ft);
+	return;
 }

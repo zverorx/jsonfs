@@ -21,6 +21,8 @@
 /**
  * @file 
  * @brief Contains definition of functions for working with deserialized JSON file.
+ * 
+ * Function declarations and specifications can be found in json_operations.h.
  */
 
 #include <jansson.h>
@@ -32,68 +34,12 @@
 #include "common.h"
 #include "json_operations.h"
 
-json_t *find_json_node(const char *path, json_t *root)
-{
-	char *path_dup = NULL;
-	char *saveptr = NULL;
-
-	CHECK_POINTER(path, NULL);
-	CHECK_POINTER(root, NULL);
-
-	if (strcmp(path, "/") == 0) { return root; }
-
-	path_dup = strdup(path);
-	CHECK_POINTER(path_dup, NULL);
-
-	char *key = strtok_r(path_dup, "/", &saveptr);
-	if (!key) { goto handle_error; }
-
-	json_t *curr_obj = root;
-
-	while(key) {
-		if (!json_is_object(curr_obj)) { goto handle_error; }
-		curr_obj = json_object_get(curr_obj, key);
-		if (!curr_obj) { goto handle_error; }
-		key = strtok_r(NULL, "/", &saveptr);
-	}
-
-	free(path_dup);
-	return curr_obj;
-
-	handle_error:
-		free(path_dup);
-		return NULL;
-}
-
-int replace_json_nodes(json_t *old_node, json_t *new_node, json_t *root)
-{
-	json_t *parent = NULL;
-	const char *key = NULL;
-	int res_find;
-	int res_set = -1;
-
-	CHECK_POINTER(old_node, -EFAULT);
-	CHECK_POINTER(new_node, -EFAULT);
-	CHECK_POINTER(root, -EFAULT);
-
-	res_find = find_parent_and_key(root, old_node, &parent, &key);
-	if (res_find) { return res_find; }
-
-	if (json_is_object(parent)) {
-		res_set = json_object_set(parent, key, new_node);
-	}
-
-	if (res_set) { return -EINVAL; }
-	json_decref(new_node);
-	return 0;
-}
-
 json_t *normalize_json(json_t *root, int is_root)
 {
 	json_t *obj = NULL;
 	json_t *value = NULL;
 	const char *key = NULL;
-	char *transform_key;
+	char *transform_key = NULL;
 	json_t *json_copy_ret = NULL;
 	json_t *converted_val = NULL;
 	size_t i;
@@ -216,6 +162,39 @@ json_t *denormalize_json(json_t *root)
 		return NULL;
 }
 
+json_t *find_json_node(const char *path, json_t *root)
+{
+	char *path_dup = NULL;
+	char *saveptr = NULL;
+
+	CHECK_POINTER(path, NULL);
+	CHECK_POINTER(root, NULL);
+
+	if (strcmp(path, "/") == 0) { return root; }
+
+	path_dup = strdup(path);
+	CHECK_POINTER(path_dup, NULL);
+
+	char *key = strtok_r(path_dup, "/", &saveptr);
+	if (!key) { goto handle_error; }
+
+	json_t *curr_obj = root;
+
+	while(key) {
+		if (!json_is_object(curr_obj)) { goto handle_error; }
+		curr_obj = json_object_get(curr_obj, key);
+		if (!curr_obj) { goto handle_error; }
+		key = strtok_r(NULL, "/", &saveptr);
+	}
+
+	free(path_dup);
+	return curr_obj;
+
+	handle_error:
+		free(path_dup);
+		return NULL;
+}
+
 int find_parent_and_key(json_t *root, json_t *node, json_t **parent, 
 					    const char **key)
 {
@@ -246,6 +225,94 @@ int find_parent_and_key(json_t *root, json_t *node, json_t **parent,
 	return -ENOENT;
 }
 
+int spec_prefix_is_present(json_t *root)
+{
+	const char *key = NULL;
+	json_t *value = NULL;
+	int found = 0;
+
+	json_object_foreach(root, key, value) {
+		if (strstr(key, SPECIAL_PREFIX)) {
+			return 1;
+		}
+
+		if (json_is_object(value)) { 
+			found = spec_prefix_is_present(value); 
+		}
+
+		if (found) { return 1; }
+	}
+
+	return 0;
+}
+
+int find_keys_with_spec_slash(json_t *root, json_t **results, int max_results, int count)
+{
+    const char *key = NULL;
+    json_t *value = NULL;
+    
+    json_object_foreach(root, key, value) {
+        if (strstr(key, SPECIAL_SLASH)) {
+            if (count < max_results) {
+                results[count] = value;
+				count++;
+            }
+        }
+        
+        if (json_is_object(value)) {
+            count = find_keys_with_spec_slash(value, results, max_results, count);
+        }
+    }
+    
+    return count;
+}
+
+int find_array_in_normal_root(json_t *root, json_t **results, int max_results, int count)
+{
+    const char *key = NULL;
+    json_t *value = NULL;
+    
+    json_object_foreach(root, key, value) {
+        if (key[0] == '@' && !strstr(key, SPECIAL_SLASH)) {
+            results[count] = root;
+			count++;
+			break;	
+		}
+
+	}
+
+    json_object_foreach(root, key, value) {
+		if (json_is_object(value)) {
+			count = find_array_in_normal_root(value, results, max_results, count);
+		}
+	}
+
+	return count;
+}
+
+int replace_json_nodes(json_t *old_node, json_t *new_node, json_t *root)
+{
+	json_t *parent = NULL;
+	const char *key = NULL;
+	int res_find;
+	int res_set = -1;
+
+	CHECK_POINTER(old_node, -EFAULT);
+	CHECK_POINTER(new_node, -EFAULT);
+	CHECK_POINTER(root, -EFAULT);
+
+	res_find = find_parent_and_key(root, old_node, &parent, &key);
+	if (res_find) { return res_find; }
+
+	if (json_is_object(parent)) {
+		res_set = json_object_set(parent, key, new_node);
+	}
+
+	if (res_set) { return -EINVAL; }
+	json_decref(new_node);
+	return 0;
+}
+
 int count_subdirs(json_t *obj)
 {
 	int count = 0;
@@ -272,57 +339,6 @@ int is_special_file(const char *path)
 			return 1;
 	}
 	return 0;
-}
-
-int separate_filepath(const char *path, char **parent_path, char **basename)
-{
-	char *path_dup = NULL;
-	char *last_slash = NULL;
-
-	CHECK_POINTER(path, -1);
-	CHECK_POINTER(parent_path, -1);
-	CHECK_POINTER(basename, -1);
-
-	*parent_path = NULL;
-	*basename = NULL;
-
-	path_dup = strdup(path);
-	CHECK_POINTER(path_dup, -1);
-
-	last_slash = strrchr(path_dup, '/');
-
-	if (last_slash) {
-		*last_slash = '\0';
-
-		*basename = strdup(last_slash + 1);
-		if (!*basename) { goto handle_error; }
-
-		if (path_dup[0] == '\0') {
-			*parent_path = strdup("/");
-			if (!*parent_path) { goto handle_error; }
-		}
-		else {
-			*parent_path = path_dup;
-			path_dup = NULL;
-		}
-	}
-	else {
-		*basename = path_dup;
-		path_dup = NULL;
-		if (!*basename) { goto handle_error; }
-
-		*parent_path = strdup(".");
-		if (!*parent_path) { goto handle_error; }
-	}
-
-	free(path_dup);
-	return 0;
-
-	handle_error:
-		free(path_dup);
-		free(*parent_path);
-		free(*basename);
-		return -1;
 }
 
 char *replace_slash(const char *key)
@@ -401,67 +417,53 @@ char *reverse_replace_slash(const char *key)
 		return NULL;
 }
 
-int spec_prefix_is_present(json_t *root)
+int separate_filepath(const char *path, char **parent_path, char **basename)
 {
-	const char *key = NULL;
-	json_t *value = NULL;
-	int found = 0;
+	char *path_dup = NULL;
+	char *last_slash = NULL;
 
-	json_object_foreach(root, key, value) {
-		if (strstr(key, SPECIAL_PREFIX)) {
-			return 1;
+	CHECK_POINTER(path, -1);
+	CHECK_POINTER(parent_path, -1);
+	CHECK_POINTER(basename, -1);
+
+	*parent_path = NULL;
+	*basename = NULL;
+
+	path_dup = strdup(path);
+	CHECK_POINTER(path_dup, -1);
+
+	last_slash = strrchr(path_dup, '/');
+
+	if (last_slash) {
+		*last_slash = '\0';
+
+		*basename = strdup(last_slash + 1);
+		if (!*basename) { goto handle_error; }
+
+		if (path_dup[0] == '\0') {
+			*parent_path = strdup("/");
+			if (!*parent_path) { goto handle_error; }
 		}
-
-		if (json_is_object(value)) { 
-			found = spec_prefix_is_present(value); 
+		else {
+			*parent_path = path_dup;
+			path_dup = NULL;
 		}
+	}
+	else {
+		*basename = path_dup;
+		path_dup = NULL;
+		if (!*basename) { goto handle_error; }
 
-		if (found) { return 1; }
+		*parent_path = strdup(".");
+		if (!*parent_path) { goto handle_error; }
 	}
 
+	free(path_dup);
 	return 0;
-}
 
-int find_keys_with_spec_slash(json_t *root, json_t **results, int max_results, int count)
-{
-    const char *key = NULL;
-    json_t *value = NULL;
-    
-    json_object_foreach(root, key, value) {
-        if (strstr(key, SPECIAL_SLASH)) {
-            if (count < max_results) {
-                results[count] = value;
-				count++;
-            }
-        }
-        
-        if (json_is_object(value)) {
-            count = find_keys_with_spec_slash(value, results, max_results, count);
-        }
-    }
-    
-    return count;
-}
-
-int find_array_in_normal_root(json_t *root, json_t **results, int max_results, int count)
-{
-    const char *key = NULL;
-    json_t *value = NULL;
-    
-    json_object_foreach(root, key, value) {
-        if (key[0] == '@' && !strstr(key, SPECIAL_SLASH)) {
-            results[count] = root;
-			count++;
-			break;	
-		}
-
-	}
-
-    json_object_foreach(root, key, value) {
-		if (json_is_object(value)) {
-			count = find_array_in_normal_root(value, results, max_results, count);
-		}
-	}
-
-	return count;
+	handle_error:
+		free(path_dup);
+		free(*parent_path);
+		free(*basename);
+		return -1;
 }

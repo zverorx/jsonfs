@@ -20,11 +20,11 @@
 
 /**
  * @file
- * @brief FUSE filesystem operation handlers.
+ * @brief FUSE Callbacks.
  *
  * Implements callback functions for FUSE filesystem operations,
- * including destroy, getattr, readdir, read, write, unlink, 
- * rmdir, mknode, mkdir, utimens, open, rename, truncate.
+ * including: getattr, mknode, mkdir, unlink, rmdir, rename, truncate,
+ * 			  open, read, write, readdir, destroy, utimens. 
  */
 
 #define FUSE_USE_VERSION 35
@@ -64,17 +64,58 @@ int jsonfs_getattr(const char *path, struct stat *st,
 	return 0;
 }
 
-int jsonfs_open(const char *path, struct fuse_file_info *fi)
+int jsonfs_mknod(const char *path, mode_t mode, dev_t dev)
 {
-	if ((fi->flags & O_TRUNC) == O_TRUNC) {
-		struct fuse_context *ctx = fuse_get_context();
-		struct jsonfs_private_data *pd = ctx->private_data;
-		CHECK_POINTER(pd, -ENOMEM);
+	int res_mk;
 
-		trunc_json_file(path, 0, pd);
-	}
+	if (strstr(path, ".sw")) { return -EPERM; }
 
-	return 0;
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+	
+	res_mk = make_file(path, mode, pd);
+
+	return res_mk;
+}
+
+int jsonfs_mkdir(const char *path, mode_t mode)
+{
+	int res_mk;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+	
+	res_mk = make_file(path, mode, pd);
+
+	return res_mk;
+}
+
+int jsonfs_unlink(const char *path)
+{
+	int res_rm;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	res_rm = rm_file(path, S_IFREG, pd);
+	
+	return res_rm;
+}
+
+int jsonfs_rmdir(const char *path)
+{
+	int res_rm;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	res_rm = rm_file(path, S_IFDIR, pd);
+	
+	return res_rm;
 }
 
 int jsonfs_rename(const char *old_path, const char *new_path, unsigned int flags)
@@ -91,37 +132,28 @@ int jsonfs_rename(const char *old_path, const char *new_path, unsigned int flags
 	return res_rename;
 }
 
-int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
-				   off_t offset, struct fuse_file_info *fi,
-				   enum fuse_readdir_flags flags)
+int jsonfs_truncate(const char *path, off_t len, struct fuse_file_info *fi)
 {
-	json_t *node = NULL;
-	const char *key = NULL;
-	json_t *value = NULL;
-
-	(void) offset;
+	int res_trunc;
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
 	struct jsonfs_private_data *pd = ctx->private_data;
 	CHECK_POINTER(pd, -ENOMEM);
 
-	FILL_OR_RETURN(buffer, ".");
-	FILL_OR_RETURN(buffer, "..");
-	if (strcmp("/", path) == 0) {
-		FILL_OR_RETURN(buffer, ".status");
-		FILL_OR_RETURN(buffer, ".save");
-	}
+	res_trunc = trunc_json_file(path, len, pd);
 
-	node = find_json_node(path, pd->root);
-	CHECK_POINTER(node, -ENOENT);
+	return res_trunc;
+}
 
-	if (!json_is_object(node)) {
-		return -ENOTDIR;
-	}
+int jsonfs_open(const char *path, struct fuse_file_info *fi)
+{
+	if ((fi->flags & O_TRUNC) == O_TRUNC) {
+		struct fuse_context *ctx = fuse_get_context();
+		struct jsonfs_private_data *pd = ctx->private_data;
+		CHECK_POINTER(pd, -ENOMEM);
 
-	json_object_foreach(node, key, value) {
-		FILL_OR_RETURN(buffer, key);
+		trunc_json_file(path, 0, pd);
 	}
 
 	return 0;
@@ -166,58 +198,48 @@ int jsonfs_write(const char *path, const char *buffer, size_t size,
 	return res_write;
 }
 
-int jsonfs_unlink(const char *path)
+int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
+				   off_t offset, struct fuse_file_info *fi,
+				   enum fuse_readdir_flags flags)
 {
-	int res_rm;
+	json_t *node = NULL;
+	const char *key = NULL;
+	json_t *value = NULL;
+
+	(void) offset;
+	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
 	struct jsonfs_private_data *pd = ctx->private_data;
 	CHECK_POINTER(pd, -ENOMEM);
 
-	res_rm = rm_file(path, S_IFREG, pd);
-	
-	return res_rm;
+	FILL_OR_RETURN(buffer, ".");
+	FILL_OR_RETURN(buffer, "..");
+	if (strcmp("/", path) == 0) {
+		FILL_OR_RETURN(buffer, ".status");
+		FILL_OR_RETURN(buffer, ".save");
+	}
+
+	node = find_json_node(path, pd->root);
+	CHECK_POINTER(node, -ENOENT);
+
+	if (!json_is_object(node)) {
+		return -ENOTDIR;
+	}
+
+	json_object_foreach(node, key, value) {
+		FILL_OR_RETURN(buffer, key);
+	}
+
+	return 0;
 }
 
-int jsonfs_rmdir(const char *path)
+void jsonfs_destroy(void *userdata)
 {
-	int res_rm;
+	if (!userdata) { return; }
 
-	struct fuse_context *ctx = fuse_get_context();
-	struct jsonfs_private_data *pd = ctx->private_data;
-	CHECK_POINTER(pd, -ENOMEM);
-
-	res_rm = rm_file(path, S_IFDIR, pd);
-	
-	return res_rm;
-}
-
-int jsonfs_mknod(const char *path, mode_t mode, dev_t dev)
-{
-	int res_mk;
-
-	if (strstr(path, ".sw")) { return -EPERM; }
-
-	struct fuse_context *ctx = fuse_get_context();
-	struct jsonfs_private_data *pd = ctx->private_data;
-	CHECK_POINTER(pd, -ENOMEM);
-	
-	res_mk = make_file(path, mode, pd);
-
-	return res_mk;
-}
-
-int jsonfs_mkdir(const char *path, mode_t mode)
-{
-	int res_mk;
-
-	struct fuse_context *ctx = fuse_get_context();
-	struct jsonfs_private_data *pd = ctx->private_data;
-	CHECK_POINTER(pd, -ENOMEM);
-	
-	res_mk = make_file(path, mode, pd);
-
-	return res_mk;
+	struct jsonfs_private_data *pd = (struct jsonfs_private_data *)userdata;
+	destroy_private_data(pd);
 }
 
 int jsonfs_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi)
@@ -244,28 +266,4 @@ int jsonfs_utimens(const char *path, const struct timespec tv[2], struct fuse_fi
 	}
 
     return 0;
-}
-
-int jsonfs_truncate(const char *path, off_t len, struct fuse_file_info *fi)
-{
-	int res_trunc;
-	(void) fi;
-
-	struct fuse_context *ctx = fuse_get_context();
-	struct jsonfs_private_data *pd = ctx->private_data;
-	CHECK_POINTER(pd, -ENOMEM);
-
-	res_trunc = trunc_json_file(path, len, pd);
-
-	return res_trunc;
-}
-
-void jsonfs_destroy(void *userdata)
-{
-	if (!userdata) {
-		return;
-	}
-
-	struct jsonfs_private_data *pd = (struct jsonfs_private_data *)userdata;
-	destroy_private_data(pd);
 }

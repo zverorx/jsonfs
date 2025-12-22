@@ -36,6 +36,9 @@
  * 
  * This structure is allocated in main() and passed to fuse_main(),
  * then made available via fuse_get_context()->private_data in all callbacks.
+ * 
+ * @see init_private_data
+ * @see destroy_private_data
  */
 struct jsonfs_private_data {
 	json_t *root;				/**< Deserialized JSON document */
@@ -70,9 +73,14 @@ struct fuse_operations get_fuse_op(void);
 
 /**
  * @brief  Prepares arguments for fuse_main().
+ * 
  * @param argc Argument count from main().
  * @param argv Argument vector from main().
+ * 
  * @return A struct with adjusted argc/argv; caller must free fuse_argv.
+ * 
+ * @note If no memory has been allocated inside for fuse_argv, 
+ * 		 exit(EXIT_FAILURE) is executed.
  */
 struct private_args get_fuse_args(int argc, char **argv);
 

@@ -88,7 +88,7 @@
  * @def FILL_OR_RETURN 
  * @brief Adds a directory entry to readdir buffer. 
  * 
- * @param BUFF Buffer from fuse_fill_dir_t filler function.
+ * @param BUFF The buffer passed to the readdir() operation.
  * @param NAME Name of the directory entry to add.
  *
  * @return Returns -ENOMEM if filler fails. 

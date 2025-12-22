@@ -20,9 +20,7 @@
 
 /**
  * @file
- * @brief JSONFS filesystem logic interface.
- *
- * Contains declarations of functions from handlers.c and specifications for them.
+ * @brief Contains function declarations used as callback handlers.
  */
 
 #ifndef HANDLERS_H_SENTRY
@@ -31,98 +29,30 @@
 #include "jsonfs.h"
 
 /**
- * @brief Sets attributes for special files. Used in getattr.
- * 
- * @param path The absolute path to the special file.
- * @param stat Structure to fill with file attributes.
- * @param pd Private filesystem data from FUSE context. 
- * @return return 0 if success, negative error code otherwise.
- * 
- * @see is_special_file()
- */
-int getattr_special_file(const char *path, struct stat *st,
-						 struct jsonfs_private_data *pd);
-
-/**
  * @brief Sets attributes for JSON files and directories. 
  * 
- * @param path Absolute path, must not be NULL. 
+ * @param path Absolute path, must not be NULL.
  * @param stat Structure to fill with file attributes.
- * @param pd Private filesystem data from FUSE context. 
+ * @param pd Private filesystem data from FUSE context.
+ * 
  * @return return 0 if success, negative error code otherwize.
  */
 int getattr_json_file(const char *path, struct stat *st,
 					  struct jsonfs_private_data *pd);
 
 /**
- * @brief Reads content from special filesystem control files.
- * 
- * Implements read operation for virtual special files:
- * - /.status: displays filesystem status information 
- * - /.save: indicates whether the changes have been saved. 
+ * @brief Sets attributes for special files.
  * 
  * @param path The absolute path to the special file.
- * @param buffer Buffer provided by FUSE for storing read data.
- * @param size Maximum number of bytes to read. 
- * @param offset Byte offset from which to start reading. 
- * @param pd Private filesystem data from FUSE context. 
- * 
- * @return Number of bytes read on success, negative error code on failure.
- */
-int read_special_file(const char *path, char *buffer, size_t size,
-					  off_t offset, struct jsonfs_private_data *pd);
-
-/**
- * @brief Reads content from JSON file.
- * 
- * @param path The absolute path to the JSON node.
- * @param buffer Buffer provided by FUSE for storing read data.
- * @param size Maximum number of bytes to read.
- * @param offset Byte offset from which to start reading.
+ * @param stat Structure to fill with file attributes.
  * @param pd Private filesystem data from FUSE context.
  * 
- * @return Number of bytes read on success, negative error code on failure.
+ * @return return 0 if success, negative error code otherwise.
+ * 
+ * @see is_special_file()
  */
-int read_json_file(const char *path, char *buffer, size_t size,
-				   off_t offset, struct jsonfs_private_data *pd);
-
-/**
- * @brief Writes data to special filesystem control files.
- * 
- * @param path The absolute path to the special file.
- * @param buffer Buffer containing data to write.
- * @param size Number of bytes to write.
- * @param offset Byte offset where to start writing.
- * @param pd Private filesystem data from FUSE context.
- * 
- * @return Number of bytes written on success, negative error code on failure.
- */
-int write_special_file(const char *path, const char *buffer, size_t size,
-					   off_t offset, struct jsonfs_private_data *pd);
-
-/**
- * @brief Writes data to JSON file nodes.
- * 
- * @param path The absolute path to the JSON node.
- * @param buffer Buffer containing data to write.
- * @param size Number of bytes to write.
- * @param offset Byte offset where to start writing.
- * @param pd Private filesystem data from FUSE context.
- * 
- * @return Number of bytes written on success, negative error code on failure.
- */					   
-int write_json_file(const char *path, const char *buffer, size_t size,
-					off_t offset, struct jsonfs_private_data *pd);
-/**
- * @brief Deleting files in the filesystem.
- *
- * @param path Absolute path, must not be NULL. 
- * @param file_type Constants S_IFREG or S_IFDIR.
- * @param pd Private filesystem data from FUSE context.
- * 
- * @return 0 on success, negative error code on failure.
- */
-int rm_file(const char *path, int file_type, struct jsonfs_private_data *pd);
+int getattr_special_file(const char *path, struct stat *st,
+						 struct jsonfs_private_data *pd);
 
 /**
  * @brief Creates files or directories in the filesystem.
@@ -134,6 +64,17 @@ int rm_file(const char *path, int file_type, struct jsonfs_private_data *pd);
  * @return 0 on success, negative error code on failure.
  */
 int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd);
+
+/**
+ * @brief Deleting files in the filesystem.
+ *
+ * @param path Absolute path, must not be NULL. 
+ * @param file_type Constants S_IFREG or S_IFDIR.
+ * @param pd Private filesystem data from FUSE context.
+ * 
+ * @return 0 on success, negative error code on failure.
+ */
+int rm_file(const char *path, int file_type, struct jsonfs_private_data *pd);
 
 /**
  * @brief Renaming and moving files and directories.
@@ -158,5 +99,69 @@ int rename_file(const char *old_path, const char *new_path,
  */
 int trunc_json_file(const char *path, off_t offset, 
 					struct jsonfs_private_data *pd);
+
+/**
+ * @brief Reads content from JSON file.
+ * 
+ * @param path The absolute path to the JSON file.
+ * @param buffer Buffer provided by FUSE for storing read data.
+ * @param size Maximum number of bytes to read.
+ * @param offset Byte offset from which to start reading.
+ * @param pd Private filesystem data from FUSE context.
+ * 
+ * @return Number of bytes read on success, negative error code on failure.
+ */
+int read_json_file(const char *path, char *buffer, size_t size,
+				   off_t offset, struct jsonfs_private_data *pd);
+
+/**
+ * @brief Reads content from special filesystem control files.
+ * 
+ * Implements read operation for virtual special files:
+ * - /.status: displays filesystem status information. 
+ * - /.save: indicates whether the changes have been saved. 
+ * 
+ * @param path The absolute path to the special file.
+ * @param buffer Buffer provided by FUSE for storing read data.
+ * @param size Maximum number of bytes to read. 
+ * @param offset Byte offset from which to start reading. 
+ * @param pd Private filesystem data from FUSE context. 
+ * 
+ * @return Number of bytes read on success, negative error code on failure.
+ * 
+ * @see is_special_file()
+ */
+int read_special_file(const char *path, char *buffer, size_t size,
+					  off_t offset, struct jsonfs_private_data *pd);
+
+/**
+ * @brief Writes data to JSON file.
+ * 
+ * @param path The absolute path to the JSON file.
+ * @param buffer Buffer containing data to write.
+ * @param size Number of bytes to write.
+ * @param offset Byte offset where to start writing.
+ * @param pd Private filesystem data from FUSE context.
+ * 
+ * @return Number of bytes written on success, negative error code on failure.
+ */					   
+int write_json_file(const char *path, const char *buffer, size_t size,
+					off_t offset, struct jsonfs_private_data *pd);
+
+/**
+ * @brief Writes data to special filesystem control files.
+ * 
+ * @param path The absolute path to the special file.
+ * @param buffer Buffer containing data to write.
+ * @param size Number of bytes to write.
+ * @param offset Byte offset where to start writing.
+ * @param pd Private filesystem data from FUSE context.
+ * 
+ * @return Number of bytes written on success, negative error code on failure.
+ * 
+ * @see is_special_file()
+ */
+int write_special_file(const char *path, const char *buffer, size_t size,
+					   off_t offset, struct jsonfs_private_data *pd);
 
 #endif /* HANDLERS_H_SENTRY */

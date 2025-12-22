@@ -39,50 +39,6 @@
 #include "json_operations.h"
 #include "file_time.h"
 
-int getattr_special_file(const char *path, struct stat *st,
-						 struct jsonfs_private_data *pd)
-{
-	int is_saved;
-	struct file_time *ft = NULL;
-
-	CHECK_POINTER(path, -EFAULT);
-	CHECK_POINTER(st, -EFAULT);
-	CHECK_POINTER(pd, -EFAULT);
-    
-    if (!is_special_file(path)) {
-        return -EINVAL;
-    }
-	
-	is_saved = pd->is_saved;
-
-	st->st_uid = pd->uid;
-	st->st_gid = pd->gid;
-
-	ft = find_node_file_time(path, pd->ft);
-	if (ft) {
-		st->st_atime = ft->atime;
-		st->st_mtime = ft->mtime;
-		st->st_ctime = ft->ctime;
-	}
-	else {
-		st->st_atime = pd->ft->atime;
-		st->st_mtime = pd->ft->mtime;
-		st->st_ctime = pd->ft->ctime;
-	}
-
-	if (strcmp("/.status", path) == 0) {
-		st->st_mode = S_IFREG | 0444;
-		st->st_nlink = 1;
-		st->st_size = is_saved ? strlen("SAVED") : strlen("UNSAVED");
-	}
-	else if (strcmp("/.save", path) == 0) {
-		st->st_mode = S_IFREG | 0666;
-		st->st_nlink = 1;
-		st->st_size = 1;
-	}
-	return 0;
-}
-
 int getattr_json_file(const char *path, struct stat *st,
 					  struct jsonfs_private_data *pd)
 {
@@ -126,253 +82,47 @@ int getattr_json_file(const char *path, struct stat *st,
 	return 0;
 }
 
-int read_special_file(const char *path, char *buffer, size_t size,
-					  off_t offset, struct jsonfs_private_data *pd)
+int getattr_special_file(const char *path, struct stat *st,
+						 struct jsonfs_private_data *pd)
 {
-	char *text = NULL;
 	int is_saved;
-	size_t text_len;
-	size_t final_size = 0;
 	struct file_time *ft = NULL;
-	time_t now = time(NULL);
 
 	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(st, -EFAULT);
 	CHECK_POINTER(pd, -EFAULT);
-
+    
     if (!is_special_file(path)) {
         return -EINVAL;
     }
-
+	
 	is_saved = pd->is_saved;
 
+	st->st_uid = pd->uid;
+	st->st_gid = pd->gid;
+
+	ft = find_node_file_time(path, pd->ft);
+	if (ft) {
+		st->st_atime = ft->atime;
+		st->st_mtime = ft->mtime;
+		st->st_ctime = ft->ctime;
+	}
+	else {
+		st->st_atime = pd->ft->atime;
+		st->st_mtime = pd->ft->mtime;
+		st->st_ctime = pd->ft->ctime;
+	}
+
 	if (strcmp("/.status", path) == 0) {
-		text = is_saved ? "SAVED\n" : "UNSAVED\n";
+		st->st_mode = S_IFREG | 0444;
+		st->st_nlink = 1;
+		st->st_size = is_saved ? strlen("SAVED") : strlen("UNSAVED");
 	}
 	else if (strcmp("/.save", path) == 0) {
-		text = is_saved ? "0" : "1";
+		st->st_mode = S_IFREG | 0666;
+		st->st_nlink = 1;
+		st->st_size = 1;
 	}
-	
-	text_len = strlen(text);
-	if (offset < text_len) {
-		final_size = text_len - offset;
-		if (final_size > size) {
-			final_size = size;
-		}
-		memcpy(buffer, text + offset, final_size);
-	}
-
-	ft = find_node_file_time(path, pd->ft);
-	if (ft) {
-		ft->atime = now;
-		ft->ctime = now;
-	}
-	else {
-		add_node_to_list_ft(path, pd->ft, SET_ATIME | SET_CTIME);
-	}
-
-	return (int)final_size;
-}
-
-int read_json_file(const char *path, char *buffer, size_t size,
-				   off_t offset, struct jsonfs_private_data *pd)
-{
-	json_t *node = NULL;
-	char *text = NULL;
-	size_t text_len;
-	size_t final_size = 0;
-	time_t now = time(NULL);
-	struct file_time *ft = NULL;
-
-	CHECK_POINTER(path, -EFAULT);
-	CHECK_POINTER(pd, -EFAULT);
-
-	node = find_json_node(path, pd->root);
-	CHECK_POINTER(node, -ENOENT);
-	
-	text = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
-	CHECK_POINTER(text, -ENOMEM);
-
-	text_len = strlen(text);
-	if (offset < text_len) {
-		final_size = text_len - offset;
-		if (final_size > size) {
-			final_size = size;
-		}
-		memcpy(buffer, text + offset, final_size);
-	}
-	free(text);
-
-	ft = find_node_file_time(path, pd->ft);
-	if (ft) {
-		ft->atime = now;
-		ft->ctime = now;
-	}
-	else {
-		add_node_to_list_ft(path, pd->ft, SET_ATIME | SET_CTIME);
-	}
-
-	return (int)final_size;
-}
-
-int write_special_file(const char *path, const char *buffer, size_t size,
-					   off_t offset, struct jsonfs_private_data *pd)
-{
-	int res_save;
-	time_t now = time(NULL);
-	struct file_time *ft = NULL;
-	json_t *saved_json = NULL;
-
-	CHECK_POINTER(path, -EFAULT);
-	CHECK_POINTER(buffer, -EFAULT);
-	CHECK_POINTER(pd, -EFAULT);
-
-	if (!is_special_file(path)) { 
-		return -EINVAL; 
-	}
-
-	if (strcmp("/.save", path) != 0) {
-		return -EACCES;
-	}
-
-	saved_json = denormalize_json(pd->root); 
-	CHECK_POINTER(saved_json, -EINVAL);
-
-	res_save = json_dump_file(saved_json, pd->path_to_json_file,
-							  JSON_INDENT(2) | JSON_ENCODE_ANY | 
-							  JSON_REAL_PRECISION(10));
-	if (res_save < 0) { return -EINVAL; }
-	json_decref(saved_json);
-
-	pd->is_saved = 1;
-
-	ft = find_node_file_time(path, pd->ft);
-	if (ft) {
-		ft->mtime = now;
-		ft->ctime = now;
-	}
-	else {
-		add_node_to_list_ft(path, pd->ft, SET_MTIME | SET_CTIME);
-	}
-
-	return (int) size;
-}
-
-int write_json_file(const char *path, const char *buffer, size_t size,
-					off_t offset, struct jsonfs_private_data *pd)
-{
-	json_t *old_node = NULL;
-	json_t *new_node = NULL;
-	json_t *root = NULL;
-	char *content = NULL;
-	void *res_realloc = NULL;
-	size_t content_len;
-	int res_replace;
-	int ret = (int) size;
-	time_t now = time(NULL);
-	struct file_time *ft = NULL;
-
-	CHECK_POINTER(path, -EFAULT);
-	CHECK_POINTER(buffer, -EFAULT);
-	CHECK_POINTER(pd, -EFAULT);
-
-	root = pd->root;
-	CHECK_POINTER(root, -EFAULT);
-
-	old_node = find_json_node(path, root);
-	CHECK_POINTER(old_node, -ENOENT);
-
-	content = json_dumps(old_node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
-	CHECK_POINTER(content, -ENOMEM);
-
-	content_len = strlen(content);
-
-	if (size + offset > content_len) {
-		res_realloc = realloc(content, size + offset + 1);
-		if (!res_realloc) { ret = -ENOMEM; goto handle_error; }
-		content = res_realloc;
-
-		content_len = size + offset;
-		content[content_len] = '\0';
-	}
-
-	for(int i = offset, j = 0; i < content_len && j < size; i++, j++) {
-		content[i] = buffer[j];
-	}
-
-#	if 0
-	fputs("=== start write ===\n", stderr);
-	fprintf(stderr, "content: %s\n", content);
-	fprintf(stderr, "content_len: %ld\n", content_len);
-	fprintf(stderr, "size: %ld\n", size);
-	fprintf(stderr, "offset: %ld\n", offset);
-	fprintf(stderr, "buffer:\n");
-	for(int i = 0; i < size; i++) {
-		fprintf(stderr, "el[%d]: %c\n", i, buffer[i]);
-	}
-	fputs("=== end write ===\n", stderr);
-#	endif
-
-	new_node = json_loads(content, JSON_DECODE_ANY, NULL);
-	if (!new_node) { ret = -EINVAL; goto handle_error; }
-
-	res_replace = replace_json_nodes(old_node, new_node, root);
-	if (res_replace) { ret = -ENOENT; goto handle_error; }
-
-	pd->is_saved = 0;
-
-	ft = find_node_file_time(path, pd->ft);
-	if (ft) {
-		ft->mtime = now;
-		ft->ctime = now;
-	}
-	else {
-		add_node_to_list_ft(path, pd->ft, SET_MTIME | SET_CTIME);
-	}
-
-	free(content);
-	return ret;
-
-	handle_error:
-		json_decref(new_node);
-		free(content);
-		return ret;
-}
-
-int rm_file(const char *path, int file_type, struct jsonfs_private_data *pd)
-{
-	json_t *node = NULL;
-	json_t *parent = NULL;
-	const char *node_key = NULL;
-	int res_find;
-	size_t size;
-
-	CHECK_POINTER(path, -EFAULT);
-	CHECK_POINTER(pd, -EFAULT);
-	if (file_type != S_IFREG && file_type != S_IFDIR) { return -EINVAL; }
-
-	node = find_json_node(path, pd->root);
-	if (!node && is_special_file(path)) { return -EPERM; }
-	else if (!node) { return -ENOENT; }
-
-	switch (file_type) {
-		case S_IFREG:
-			if (json_is_object(node)) { return -EISDIR; }
-			break;
-		case S_IFDIR:
-			if (!json_is_object(node)) { return -ENOTDIR; }
-			if (strcmp(path, "/") == 0) { return -EBUSY; }
-
-			size = json_object_size(node);
-			if (size) { return -ENOTEMPTY; }	
-			break;
-	}
-
-	res_find = find_parent_and_key(pd->root, node, &parent, &node_key);
-	if (res_find < 0) { return res_find; }
-
-	json_object_del(parent, node_key);
-	remove_node_to_list_ft(path, pd->ft);
-
 	return 0;
 }
 
@@ -463,6 +213,44 @@ int make_file(const char *path, mode_t mode, struct jsonfs_private_data *pd)
 	}
 
 	free(parent_path);
+	return 0;
+}
+
+int rm_file(const char *path, int file_type, struct jsonfs_private_data *pd)
+{
+	json_t *node = NULL;
+	json_t *parent = NULL;
+	const char *node_key = NULL;
+	int res_find;
+	size_t size;
+
+	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(pd, -EFAULT);
+	if (file_type != S_IFREG && file_type != S_IFDIR) { return -EINVAL; }
+
+	node = find_json_node(path, pd->root);
+	if (!node && is_special_file(path)) { return -EPERM; }
+	else if (!node) { return -ENOENT; }
+
+	switch (file_type) {
+		case S_IFREG:
+			if (json_is_object(node)) { return -EISDIR; }
+			break;
+		case S_IFDIR:
+			if (!json_is_object(node)) { return -ENOTDIR; }
+			if (strcmp(path, "/") == 0) { return -EBUSY; }
+
+			size = json_object_size(node);
+			if (size) { return -ENOTEMPTY; }	
+			break;
+	}
+
+	res_find = find_parent_and_key(pd->root, node, &parent, &node_key);
+	if (res_find < 0) { return res_find; }
+
+	json_object_del(parent, node_key);
+	remove_node_to_list_ft(path, pd->ft);
+
 	return 0;
 }
 
@@ -557,12 +345,6 @@ int rename_file(const char *old_path, const char *new_path,
 int trunc_json_file(const char *path, off_t offset, 
 					struct jsonfs_private_data *pd)
 {
-#	if 0
-	fputs("=== trunc start ===\n", stderr);
-	fprintf(stderr, "path: %s\n", path);
-	fprintf(stderr, "offset: %ld\n", offset);
-#	endif
-
 	size_t content_len;
 	json_t *old_node = NULL;
 	json_t *new_node = NULL;
@@ -626,4 +408,203 @@ int trunc_json_file(const char *path, off_t offset,
 		json_decref(new_node);
 		free(content);
 		return ret;
+}
+
+int read_json_file(const char *path, char *buffer, size_t size,
+				   off_t offset, struct jsonfs_private_data *pd)
+{
+	json_t *node = NULL;
+	char *text = NULL;
+	size_t text_len;
+	size_t final_size = 0;
+	time_t now = time(NULL);
+	struct file_time *ft = NULL;
+
+	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(pd, -EFAULT);
+
+	node = find_json_node(path, pd->root);
+	CHECK_POINTER(node, -ENOENT);
+	
+	text = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
+	CHECK_POINTER(text, -ENOMEM);
+
+	text_len = strlen(text);
+	if (offset < text_len) {
+		final_size = text_len - offset;
+		if (final_size > size) {
+			final_size = size;
+		}
+		memcpy(buffer, text + offset, final_size);
+	}
+	free(text);
+
+	ft = find_node_file_time(path, pd->ft);
+	if (ft) {
+		ft->atime = now;
+		ft->ctime = now;
+	}
+	else {
+		add_node_to_list_ft(path, pd->ft, SET_ATIME | SET_CTIME);
+	}
+
+	return (int)final_size;
+}
+
+int read_special_file(const char *path, char *buffer, size_t size,
+					  off_t offset, struct jsonfs_private_data *pd)
+{
+	char *text = NULL;
+	int is_saved;
+	size_t text_len;
+	size_t final_size = 0;
+	struct file_time *ft = NULL;
+	time_t now = time(NULL);
+
+	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(pd, -EFAULT);
+
+    if (!is_special_file(path)) {
+        return -EINVAL;
+    }
+
+	is_saved = pd->is_saved;
+
+	if (strcmp("/.status", path) == 0) {
+		text = is_saved ? "SAVED\n" : "UNSAVED\n";
+	}
+	else if (strcmp("/.save", path) == 0) {
+		text = is_saved ? "0" : "1";
+	}
+	
+	text_len = strlen(text);
+	if (offset < text_len) {
+		final_size = text_len - offset;
+		if (final_size > size) {
+			final_size = size;
+		}
+		memcpy(buffer, text + offset, final_size);
+	}
+
+	ft = find_node_file_time(path, pd->ft);
+	if (ft) {
+		ft->atime = now;
+		ft->ctime = now;
+	}
+	else {
+		add_node_to_list_ft(path, pd->ft, SET_ATIME | SET_CTIME);
+	}
+
+	return (int)final_size;
+}
+
+int write_json_file(const char *path, const char *buffer, size_t size,
+					off_t offset, struct jsonfs_private_data *pd)
+{
+	json_t *old_node = NULL;
+	json_t *new_node = NULL;
+	json_t *root = NULL;
+	char *content = NULL;
+	void *res_realloc = NULL;
+	size_t content_len;
+	int res_replace;
+	int ret = (int) size;
+	time_t now = time(NULL);
+	struct file_time *ft = NULL;
+
+	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(buffer, -EFAULT);
+	CHECK_POINTER(pd, -EFAULT);
+
+	root = pd->root;
+	CHECK_POINTER(root, -EFAULT);
+
+	old_node = find_json_node(path, root);
+	CHECK_POINTER(old_node, -ENOENT);
+
+	content = json_dumps(old_node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
+	CHECK_POINTER(content, -ENOMEM);
+
+	content_len = strlen(content);
+
+	if (size + offset > content_len) {
+		res_realloc = realloc(content, size + offset + 1);
+		if (!res_realloc) { ret = -ENOMEM; goto handle_error; }
+		content = res_realloc;
+
+		content_len = size + offset;
+		content[content_len] = '\0';
+	}
+
+	for(int i = offset, j = 0; i < content_len && j < size; i++, j++) {
+		content[i] = buffer[j];
+	}
+
+	new_node = json_loads(content, JSON_DECODE_ANY, NULL);
+	if (!new_node) { ret = -EINVAL; goto handle_error; }
+
+	res_replace = replace_json_nodes(old_node, new_node, root);
+	if (res_replace) { ret = -ENOENT; goto handle_error; }
+
+	pd->is_saved = 0;
+
+	ft = find_node_file_time(path, pd->ft);
+	if (ft) {
+		ft->mtime = now;
+		ft->ctime = now;
+	}
+	else {
+		add_node_to_list_ft(path, pd->ft, SET_MTIME | SET_CTIME);
+	}
+
+	free(content);
+	return ret;
+
+	handle_error:
+		json_decref(new_node);
+		free(content);
+		return ret;
+}
+
+int write_special_file(const char *path, const char *buffer, size_t size,
+					   off_t offset, struct jsonfs_private_data *pd)
+{
+	int res_save;
+	time_t now = time(NULL);
+	struct file_time *ft = NULL;
+	json_t *saved_json = NULL;
+
+	CHECK_POINTER(path, -EFAULT);
+	CHECK_POINTER(buffer, -EFAULT);
+	CHECK_POINTER(pd, -EFAULT);
+
+	if (!is_special_file(path)) { 
+		return -EINVAL; 
+	}
+
+	if (strcmp("/.save", path) != 0) {
+		return -EACCES;
+	}
+
+	saved_json = denormalize_json(pd->root); 
+	CHECK_POINTER(saved_json, -EINVAL);
+
+	res_save = json_dump_file(saved_json, pd->path_to_json_file,
+							  JSON_INDENT(2) | JSON_ENCODE_ANY | 
+							  JSON_REAL_PRECISION(10));
+	if (res_save < 0) { return -EINVAL; }
+	json_decref(saved_json);
+
+	pd->is_saved = 1;
+
+	ft = find_node_file_time(path, pd->ft);
+	if (ft) {
+		ft->mtime = now;
+		ft->ctime = now;
+	}
+	else {
+		add_node_to_list_ft(path, pd->ft, SET_MTIME | SET_CTIME);
+	}
+
+	return (int) size;
 }

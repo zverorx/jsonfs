@@ -19,9 +19,9 @@
  */
 
 /**
- * @file 
- * @brief Contains declarations of functions and structures 
- *        for working with struct file_time.
+ * @file
+ * @brief It contains the file_time structure and 
+ *        declarations of functions for working with it.
  */
 
 #ifndef FILE_TIME_H_SENTRY
@@ -34,8 +34,6 @@
 /**
  * @struct file_time
  * @brief File time metadata structure.
- * @see add_node_to_list_ft
- * @see find_node_file_time 
  */
 struct file_time {
     char *path;                 /**< File/directory path */
@@ -60,12 +58,6 @@ enum set_time {
 /* ================================= */
 
 /**
- * @brief Free the struct file_time node in the list. 
- * @param ft The node that will be free. 
- */
-void free_file_time(struct file_time *ft);
-
-/**
  * @brief Adds a new file time node to the linked list.
  *
  * Creates a new file_time node with the specified path and time flags.
@@ -84,6 +76,7 @@ struct file_time *add_node_to_list_ft(const char* path, struct file_time *root,
 									  enum set_time flags);
 /**
  * @brief Removes a node from the list.
+ * 
  * @param path File path for the node being deleted (must not be NULL).
  * @param root Head of the file_time linked list (must not be NULL).
  * 
@@ -102,5 +95,11 @@ int remove_node_to_list_ft(const char* path, struct file_time *root);
  * @return Pointer to the found file_time node, or NULL if not found.
  */
 struct file_time *find_node_file_time(const char *path, struct file_time *root);
+
+/**
+ * @brief Free the struct file_time node in the list. 
+ * @param ft The node that will be free. 
+ */
+void free_file_time(struct file_time *ft);
 
 #endif /* FILE_TIME_H_SENTRY */
