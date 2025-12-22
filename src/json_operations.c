@@ -70,7 +70,7 @@ int replace_json_nodes(json_t *old_node, json_t *new_node, json_t *root)
 	json_t *parent = NULL;
 	const char *key = NULL;
 	int res_find;
-	int res_set;
+	int res_set = -1;
 
 	CHECK_POINTER(old_node, -EFAULT);
 	CHECK_POINTER(new_node, -EFAULT);
@@ -80,10 +80,11 @@ int replace_json_nodes(json_t *old_node, json_t *new_node, json_t *root)
 	if (res_find) { return res_find; }
 
 	if (json_is_object(parent)) {
-		res_set = json_object_set(parent, key, new_node);	
+		res_set = json_object_set(parent, key, new_node);
 	}
 
 	if (res_set) { return -EINVAL; }
+	json_decref(new_node);
 	return 0;
 }
 

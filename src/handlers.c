@@ -589,6 +589,7 @@ int trunc_json_file(const char *path, off_t offset,
 		new_node = json_integer(0); 
 		res_replace = replace_json_nodes(old_node, new_node, pd->root);
 		if (res_replace) { ret = -ENOENT; goto handle_error; }
+		free(content);
 		return ret;
 	}
 
