@@ -48,14 +48,14 @@ trap 'cd $test_dir ; sync ;                   \
 
 ########## TEST 1 ##########
 
-echo -n "msg: string file before: "
-cat string
+echo -n "msg: /obj/key file before: "
+cat obj/key
 echo
 
-echo -n "H" | dd of="$mount_point/string" bs=1 seek=1 conv=notrunc
+echo -n "H" | dd of="$mount_point/obj/key" bs=1 seek=1 conv=notrunc
 
-echo -n "msg: string file after: "
-cat string
+echo -n "msg: /obj/key file after: "
+cat obj/key
 echo
 
 ########## TEST 2 ##########
