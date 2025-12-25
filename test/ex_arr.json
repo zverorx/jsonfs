@@ -1,13 +1,11 @@
 [
   {
-    "english_string": "hello",
-    "русская_строка": "привет",
-    "cadena_española": "hola",
-    "中国弦乐": "嗨。",
+    "string": "hello",
+    "строка": "привет",
     "int": 42,
     "float": 3.14,
     "bool": true,
-    "nil": null,
+    "null": null,
     "arr": [1, "x", false],
     "obj": {
       "key": "value",
@@ -18,14 +16,12 @@
     }
   },
   {
-    "english_string": "world",
-    "русская_строка": "мир",
-    "cadena_española": "mundo",
-    "中国弦乐": "世界",
+    "string": "hello",
+    "строка": "привет",
     "int": 100,
     "float": 2.71,
     "bool": false,
-    "nil": null,
+    "null": null,
     "arr": [{"symb_a":"a"}, {"symb_b":"b"}, {"symb_c":"c"}],
     "obj": {
       "key": "value1",

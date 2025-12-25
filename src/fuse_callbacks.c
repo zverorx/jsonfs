@@ -20,31 +20,30 @@
 
 /**
  * @file
- * @brief FUSE filesystem operation handlers.
+ * @brief FUSE Callbacks.
  *
  * Implements callback functions for FUSE filesystem operations,
- * including destroy, getattr, readdir, and read.
+ * including: getattr, mknode, mkdir, unlink, rmdir, rename, truncate,
+ * 			  open, read, write, readdir, destroy, utimens. 
  */
 
 #define FUSE_USE_VERSION 35
 
-/* Includes */
 #include <jansson.h>
 #include <fuse.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
 
 #include "common.h"
-#include "jsonfs.h"
+#include "handlers.h"
+#include "file_time.h"
+#include "json_operations.h"
 
 int jsonfs_getattr(const char *path, struct stat *st,
 				   struct fuse_file_info *fi)
 {
-	time_t now;
-	json_t *node = NULL;
-
+	int res_getattr;
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
@@ -52,67 +51,112 @@ int jsonfs_getattr(const char *path, struct stat *st,
 	CHECK_POINTER(pd, -ENOMEM);
 
 	memset(st, 0, sizeof(struct stat));
-	now = time(NULL);
 
-	st->st_uid = getuid();
-	st->st_gid = getgid();
-	st->st_atime = now; 
-	st->st_mtime = now;
-	st->st_ctime = now;
-
-	node = find_node_by_path(path, pd->root);
-	CHECK_POINTER(node, -ENOENT);
-
-	if (json_is_object(node)) {
-		st->st_mode = S_IFDIR | 0555;
-		st->st_nlink = 2 + count_subdirs(node);
+	if (is_special_file(path)) {
+		res_getattr = getattr_special_file(path, st, pd);
 	}
 	else {
-		st->st_mode = S_IFREG | 0444;
-		st->st_nlink = 1;
-		char *str = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
-		st->st_size = str ? strlen(str) : 0;
-		free(str);
+		res_getattr = getattr_json_file(path, st, pd);
 	}
 
-	return 0;
+	return res_getattr;
 }
 
-int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
-				   off_t offset, struct fuse_file_info *fi,
-				   enum fuse_readdir_flags flags)
+int jsonfs_mknod(const char *path, mode_t mode, dev_t dev)
 {
-	int ret_fill;
-	json_t *node = NULL;
+	int res_mk;
 
-	const char *key;
-    json_t *value = NULL;
+	if (strstr(path, ".sw")) { return -EPERM; }
 
-	(void) offset;
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+	
+	res_mk = make_file(path, mode, pd);
+	if (!res_mk) { pd->is_saved = 0; }
+
+	return res_mk;
+}
+
+int jsonfs_mkdir(const char *path, mode_t mode)
+{
+	int res_mk;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+	
+	res_mk = make_file(path, mode, pd);
+	if (!res_mk) { pd->is_saved = 0; }
+
+	return res_mk;
+}
+
+int jsonfs_unlink(const char *path)
+{
+	int res_rm;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	res_rm = rm_file(path, S_IFREG, pd);
+	if (!res_rm) { pd->is_saved = 0; }
+	
+	return res_rm;
+}
+
+int jsonfs_rmdir(const char *path)
+{
+	int res_rm;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	res_rm = rm_file(path, S_IFDIR, pd);
+	if (!res_rm) { pd->is_saved = 0; }
+	
+	return res_rm;
+}
+
+int jsonfs_rename(const char *old_path, const char *new_path, unsigned int flags)
+{
+	int res_rename;
+	(void) flags;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	res_rename = rename_file(old_path, new_path, pd);
+	if (!res_rename) { pd->is_saved = 0; }
+
+	return res_rename;
+}
+
+int jsonfs_truncate(const char *path, off_t len, struct fuse_file_info *fi)
+{
+	int res_trunc;
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
 	struct jsonfs_private_data *pd = ctx->private_data;
 	CHECK_POINTER(pd, -ENOMEM);
 
-	ret_fill = filler(buffer, ".", NULL, 0,  FUSE_FILL_DIR_PLUS);
-	if (ret_fill) {
-		return -ENOMEM;
-	}
+	res_trunc = trunc_json_file(path, len, pd);
 
-	ret_fill = filler(buffer, "..", NULL, 0, FUSE_FILL_DIR_PLUS);
-	if (ret_fill) {
-		return -ENOMEM;
-	}
+	return res_trunc;
+}
 
-	node = find_node_by_path(path, pd->root);
-	CHECK_POINTER(node, -ENOENT);
+int jsonfs_open(const char *path, struct fuse_file_info *fi)
+{
+	if ((fi->flags & O_TRUNC) == O_TRUNC) {
+		struct fuse_context *ctx = fuse_get_context();
+		struct jsonfs_private_data *pd = ctx->private_data;
+		CHECK_POINTER(pd, -ENOMEM);
 
-	json_object_foreach(node, key, value) {
-		ret_fill = filler(buffer, key, NULL, 0, FUSE_FILL_DIR_PLUS);
-		if (ret_fill) {
-			return -ENOMEM;
-		}
+		trunc_json_file(path, 0, pd);
 	}
 
 	return 0;
@@ -121,47 +165,111 @@ int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 int jsonfs_read(const char *path, char *buffer, size_t size,
 				off_t offset, struct fuse_file_info *fi)
 {
-	char *text = NULL;
-	size_t text_len;
-	size_t copy_size = 0;
-	json_t *node = NULL;
-
+	int res_read;
 	(void) fi;
 
 	struct fuse_context *ctx = fuse_get_context();
 	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
 
-	node = find_node_by_path(path, pd->root);
-	CHECK_POINTER(node, -ENOENT);
-
-	text = json_dumps(node, JSON_ENCODE_ANY | JSON_REAL_PRECISION(10));
-	CHECK_POINTER(text, -ENOMEM);
-
-	text_len = strlen(text);
-	if (offset < text_len) {
-		copy_size = text_len - offset;
-		if (copy_size > size) {
-			copy_size = size;
-		}
-		memcpy(buffer, text + offset, copy_size);
+	if (is_special_file(path)) {
+		res_read = read_special_file(path, buffer, size, offset, pd);
+	}
+	else {
+		res_read = read_json_file(path, buffer, size, offset, pd);
 	}
 
-	free(text);
-	return (int)copy_size;
+	return res_read;
+}
+
+int jsonfs_write(const char *path, const char *buffer, size_t size,
+				 off_t offset, struct fuse_file_info *fi)
+{
+	int res_write; 
+	(void) fi;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	if (is_special_file(path)) {
+		res_write = write_special_file(path, buffer, size, offset, pd);
+		if (res_write >= 0) { pd->is_saved = 1; }
+	}
+	else {
+		res_write = write_json_file(path, buffer, size, offset, pd);
+		if (res_write >= 0) { pd->is_saved = 0; }
+	}
+
+	return res_write;
+}
+
+int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
+				   off_t offset, struct fuse_file_info *fi,
+				   enum fuse_readdir_flags flags)
+{
+	json_t *node = NULL;
+	const char *key = NULL;
+	json_t *value = NULL;
+
+	(void) offset;
+	(void) fi;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	FILL_OR_RETURN(buffer, ".");
+	FILL_OR_RETURN(buffer, "..");
+	if (strcmp("/", path) == 0) {
+		FILL_OR_RETURN(buffer, ".status");
+		FILL_OR_RETURN(buffer, ".save");
+	}
+
+	node = find_json_node(path, pd->root);
+	CHECK_POINTER(node, -ENOENT);
+
+	if (!json_is_object(node)) {
+		return -ENOTDIR;
+	}
+
+	json_object_foreach(node, key, value) {
+		FILL_OR_RETURN(buffer, key);
+	}
+
+	return 0;
 }
 
 void jsonfs_destroy(void *userdata)
 {
-	if (!userdata) {
-		return;
-	}
+	if (!userdata) { return; }
 
 	struct jsonfs_private_data *pd = (struct jsonfs_private_data *)userdata;
+	destroy_private_data(pd);
+}
 
-	if (pd->root) {
-		json_decref(pd->root);
+int jsonfs_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi)
+{
+	struct file_time *ft = NULL;
+	(void) fi;
+
+	struct fuse_context *ctx = fuse_get_context();
+	struct jsonfs_private_data *pd = ctx->private_data;
+	CHECK_POINTER(pd, -ENOMEM);
+
+	ft = find_node_file_time(path, pd->ft);
+	if (ft) {
+		ft->atime = tv[0].tv_sec;
+		ft->mtime = tv[1].tv_sec;
+		ft->ctime =	tv[1].tv_sec; 
+	}
+	else {
+		add_node_to_list_ft(path, pd->ft, 0);
+		ft = find_node_file_time(path, pd->ft);
+		ft->atime = tv[0].tv_sec;
+		ft->mtime = tv[1].tv_sec;
+		ft->ctime =	tv[1].tv_sec; 
 	}
 
-	free(pd->path_to_json_file);
-	free(pd);
+    return 0;
 }

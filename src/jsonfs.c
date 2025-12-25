@@ -20,91 +20,57 @@
 
 /**
  * @file 
- * @brief Contains common functions for JSONFS.
- *
- * Function declarations and specifications can be found in jsonfs.h.
+ * @brief Functions for getting arguments to fuse_main(). 
  */
 
 #define FUSE_USE_VERSION 35
 
 #include <jansson.h>
 #include <fuse.h>
+#include <unistd.h>
 #include <string.h>
-#include <stdlib.h>
 
 #include "common.h"
+#include "file_time.h"
+#include "jsonfs.h"
 
 extern int jsonfs_getattr(const char *path, struct stat *st,
-				   struct fuse_file_info *fi);
-extern int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
-				   off_t offset, struct fuse_file_info *fi,
-				   enum fuse_readdir_flags flags);
+				          struct fuse_file_info *fi);
+extern int jsonfs_mknod(const char *path, mode_t mode, dev_t dev);
+extern int jsonfs_mkdir(const char *path, mode_t mode);
+extern int jsonfs_unlink(const char *path);
+extern int jsonfs_rmdir (const char *path);
+extern int jsonfs_rename(const char *old_path, const char *new_path, 
+						 unsigned int flags);
+extern int jsonfs_truncate(const char *path, off_t len, struct fuse_file_info *fi);
+extern int jsonfs_open(const char *path, struct fuse_file_info *fi);
 extern int jsonfs_read(const char *path, char *buffer, size_t size,
-				off_t offset, struct fuse_file_info *fi);
+				       off_t offset, struct fuse_file_info *fi);
+extern int jsonfs_write(const char *path, const char *buffer, size_t size,
+				        off_t offset, struct fuse_file_info *fi);
+extern int jsonfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
+				          off_t offset, struct fuse_file_info *fi,
+				          enum fuse_readdir_flags flags);
 extern void jsonfs_destroy(void *userdata);
-
-
-
-struct jsonfs_private_data *init_private_data(json_t *json_root, const char *path)
-{
-	CHECK_POINTER(json_root, NULL);
-	CHECK_POINTER(path, NULL);
-
-	struct jsonfs_private_data *pd = calloc(1, sizeof(struct jsonfs_private_data));
-	CHECK_POINTER(pd, NULL);
-
-	pd->root = json_root;
-	pd->path_to_json_file = strdup(path);
-	if (!pd->path_to_json_file) {
-		free(pd);
-		return NULL;
-	}
-
-	return pd;
-}
-
-json_t *find_node_by_path(const char *path, json_t *root)
-{
-	char *dup = NULL;
-	char *saveptr = NULL;
-
-	CHECK_POINTER(path, NULL);
-	CHECK_POINTER(root, NULL);
-
-	if (strcmp(path, "/") == 0) {
-		return root;
-	}
-
-	dup = strdup(path);
-	CHECK_POINTER(dup, NULL);
-
-	char *key = strtok_r(dup, "/", &saveptr);
-	if (!key) goto exit_fail;
-
-	json_t *curr_obj = root;
-
-	while(key) {
-		if (!json_is_object(curr_obj)) goto exit_fail;
-		curr_obj = json_object_get(curr_obj, key);
-		if (!curr_obj) goto exit_fail;
-		key = strtok_r(NULL, "/", &saveptr);
-	}
-
-	free(dup);
-	return curr_obj;
-
-exit_fail:
-	free(dup);
-	return NULL;
-}
+extern int jsonfs_utimens(const char *path, const struct timespec tv[2], 
+                          struct fuse_file_info *fi);
 
 struct fuse_operations get_fuse_op(void)
 {
 	struct fuse_operations op = {
 		.getattr = jsonfs_getattr,
-		.readdir = jsonfs_readdir,
+		.mknod	 = jsonfs_mknod,
+ 		.mkdir	 = jsonfs_mkdir,
+		.unlink	 = jsonfs_unlink,
+		.rmdir	 = jsonfs_rmdir,
+		.rename	 = jsonfs_rename,
+		.truncate= jsonfs_truncate,
+		.open	 = jsonfs_open,
 		.read	 = jsonfs_read,
-		.destroy = jsonfs_destroy
+		.write	 = jsonfs_write,
+		.readdir = jsonfs_readdir,
+		.destroy = jsonfs_destroy,
+		.utimens = jsonfs_utimens
 	};
 
 	return op;
@@ -126,68 +92,71 @@ struct private_args get_fuse_args(int argc, char **argv)
 	return args;
 }
 
-int count_subdirs(json_t *obj)
+struct jsonfs_private_data *init_private_data(json_t *json_root, const char *path)
 {
-	int count = 0;
-	const char *key = NULL;
-	json_t *value = NULL;
+	int count_byte;
+	char cwd[MID_SIZE];
+	char full_path[BIG_SIZE];
+	time_t now = time(NULL);
 
-	if (!obj || !json_is_object(obj)) {
-		return 0;
+	CHECK_POINTER(json_root, NULL);
+	CHECK_POINTER(path, NULL);
+
+	struct jsonfs_private_data *pd = calloc(1, sizeof(struct jsonfs_private_data));
+	CHECK_POINTER(pd, NULL);
+
+	pd->root = json_root;
+
+	if (path[0] == '/') {
+		count_byte = snprintf(full_path, sizeof(full_path), "%s", path);
+		if (count_byte >= sizeof(full_path)) { goto handle_error; }
+	}
+	else {
+		if (!getcwd(cwd, sizeof(cwd))) { goto handle_error; }
+
+		count_byte = snprintf(full_path, sizeof(full_path), "%s/%s", cwd, path);
+		if (count_byte >= sizeof(full_path)) { goto handle_error; }
 	}
 
-	json_object_foreach(obj, key, value) {
-		if (json_is_object(value)) {
-			count++;
-		}
-	}
+	pd->path_to_json_file = strdup(full_path);
+	if (!pd->path_to_json_file) { goto handle_error; }
 
-	return count;
+	pd->ft = add_node_to_list_ft("/", NULL, SET_ATIME | SET_MTIME | SET_CTIME);
+	if (!pd->ft) { goto handle_error; }
+
+	pd->mount_time = now;
+	pd->uid = getuid();
+	pd->gid = getgid();
+	pd->is_saved = 1;
+
+	return pd;
+	
+	handle_error:
+		json_decref(pd->root);
+		free(pd->path_to_json_file);
+		free(pd);
+		return NULL;
 }
 
-json_t *convert_to_obj(json_t *root, int is_root)
+void destroy_private_data(struct jsonfs_private_data *pd)
 {
-	json_t *obj = NULL;
-	json_t *value = NULL;
-	const char *key = NULL;
-	json_t *json_copy_ret = NULL;
-	json_t *converted_val = NULL;
-	size_t i;
-	
-	CHECK_POINTER(root, NULL);
-	obj = json_object();
-	CHECK_POINTER(obj, NULL);
+	struct file_time *next = NULL;
+	struct file_time *curr = NULL;
 
-	if (json_is_object(root)) {
-        json_object_foreach(root, key, value) {
-            converted_val = convert_to_obj(value, 0);
-            CHECK_POINTER(converted_val, NULL);
-            json_object_set_new(obj, key, converted_val);
-        }
+	if (!pd) { return; }
+
+	if (pd->root) {
+		json_decref(pd->root);
 	}
-	else if (json_is_array(root)) {
-		value = NULL;
-		converted_val = NULL;
-        json_array_foreach(root, i, value) {
-            char key[32];
-            snprintf(key, sizeof(key), "%s%zu", SPECIAL_PREFIX, i);
 
-            converted_val = convert_to_obj(value, 0);
-            CHECK_POINTER(converted_val, NULL);
-            json_object_set_new(obj, key, converted_val);
-        }
-	} 
-	else {
-		if (is_root) {
-			json_copy_ret = json_copy(root);
-			CHECK_POINTER(json_copy_ret, NULL);
-			json_object_set_new(obj, SPECIAL_PREFIX"scalar", json_copy_ret);
-		}
-		else {
-			obj = json_copy(root);
-			CHECK_POINTER(obj, NULL);
-		}
-    }
+	free(pd->path_to_json_file);
 
-	return obj;
+	curr = pd->ft;
+	while(curr) {
+		next = curr->next_node;
+		free_file_time(curr);
+		curr = next;
+	}
+
+	free(pd);
 }

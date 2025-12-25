@@ -20,27 +20,53 @@
 
 /**
  * @file
- * @brief Common types, macros, and private data for JSONFS.
+ * @brief Common macros for JSONFS.
  */
 
 #ifndef COMMON_H_SENTRY
 #define COMMON_H_SENTRY
 
-#include <jansson.h>
+/**
+ * @def SHRT_SIZE
+ * @brief Used as the size for buffers.
+ */
+#define SHRT_SIZE		32
 
-/* ================================= */
-/*              Macros               */
-/* ================================= */
+/**
+ * @def MID_SIZE
+ * @brief Used as the size for buffers.
+ * 
+ * Is equal to two SHRT_SIZE.
+ */
+#define MID_SIZE		SHRT_SIZE * 2
+
+/**
+ * @def BIG_SIZE
+ * @brief Used as the size for buffers.
+ * 
+ * Is equal to two MID_SIZE.
+ */
+#define BIG_SIZE		MID_SIZE * 2	
 
 /**
  * @def SPECIAL_PREFIX
  * @brief Prefix for virtual files representing array elements and scalar values.
  * 
  * Used for files/directories that don't exist in original JSON:
- * - array indices: _$0, _$1, _$2
- * - scalar values: _$scalar
+ * - array indices: @0, @1, @2
+ * - scalar values: @scalar
  */
-#define SPECIAL_PREFIX	"_$"
+#define SPECIAL_PREFIX	"@"
+
+/**
+ * @def SPECIAL_PREFIX_SLASH
+ * @brief A special representation of the "/" symbol if it is in the key name.
+ * 
+ * Example:
+ * "key/key" in JSON file
+ * key@2Fkey as a file
+ */
+#define SPECIAL_SLASH	SPECIAL_PREFIX"2F"
 
 /**
  * @def CHECK_POINTER
@@ -58,26 +84,20 @@
 		}								\
 	} while(0)
 
-/* ================================= */
-/*            Structures             */
-/* ================================= */
-
 /**
- * @struct jsonfs_private_data
- * @brief Private data structure passed to FUSE callbacks.
+ * @def FILL_OR_RETURN 
+ * @brief Adds a directory entry to readdir buffer. 
+ * 
+ * @param BUFF The buffer passed to the readdir() operation.
+ * @param NAME Name of the directory entry to add.
+ *
+ * @return Returns -ENOMEM if filler fails. 
  */
-struct jsonfs_private_data {
-	json_t *root;				/**< Root of the parsed JSON doc */
-	char *path_to_json_file;	/**< Path to the source JSON file */
-};
-
-/**
- * @struct private_args
- * @brief Arguments for fuse_main().
- */
-struct private_args {
-	char **fuse_argv;	/**< argv for fuse_main() */
-	int fuse_argc;		/**< argc for fuse_main() */
-};
+#define FILL_OR_RETURN(BUFF, NAME)								\
+	do {														\
+		if (filler(BUFF, NAME, NULL, 0, FUSE_FILL_DIR_PLUS)) {	\
+			return -ENOMEM;										\
+		}														\
+	} while(0)
 
 #endif /* COMMON_H_SENTRY */
