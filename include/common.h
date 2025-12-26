@@ -52,11 +52,17 @@
  * @def SPECIAL_PREFIX
  * @brief Prefix for virtual files representing array elements and scalar values.
  * 
- * Used for files/directories that don't exist in original JSON:
- * - array indices: @0, @1, @2
- * - scalar values: @scalar
+ * It is used for files that do not exist in the original JSON file, 
+ * such as array indexes, keys for top-level primitives, 
+ * and some characters that cannot be in the file name.
  */
 #define SPECIAL_PREFIX	"@"
+
+/**
+ * @def SCALAR_NAME
+ * @brief A key with this name will store a top-level primitive. 
+ */
+#define SCALAR_NAME		SPECIAL_PREFIX"scalar"
 
 /**
  * @def SPECIAL_PREFIX_SLASH
@@ -64,7 +70,7 @@
  * 
  * Example:
  * "key/key" in JSON file
- * key@2Fkey as a file
+ * keySPECIAL_SLASHkey as a file
  */
 #define SPECIAL_SLASH	SPECIAL_PREFIX"2F"
 

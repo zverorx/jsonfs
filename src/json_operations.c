@@ -78,7 +78,7 @@ json_t *normalize_json(json_t *root, int is_root)
 		if (is_root) {
 			json_copy_ret = json_copy(root);
 			if (!json_copy_ret) { goto handle_error; }
-			json_object_set_new(obj, SPECIAL_PREFIX"scalar", json_copy_ret);
+			json_object_set_new(obj, SCALAR_NAME, json_copy_ret);
 		}
 		else {
 			json_decref(obj);
@@ -117,7 +117,7 @@ json_t *denormalize_json(json_t *root)
 	prefix_found = spec_prefix_is_present(root_dup);
 	if (!prefix_found) { return root_dup; }
 
-	scal_value = json_object_get(root_dup, SPECIAL_PREFIX"scalar");
+	scal_value = json_object_get(root_dup, SCALAR_NAME);
     if (scal_value) { return scal_value; }
 
 	count = find_keys_with_spec_slash(root_dup, node_with_slash, MID_SIZE, 0);

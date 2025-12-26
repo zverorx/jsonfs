@@ -36,12 +36,12 @@
  * 				  It is assumed that the caller will pass the value 1.
  * 
  * @return New independent JSON object:
- * 		   - Arrays become {"@0":..., "@1":...} with a SPECIAL_PREFIX in the keys.
- *         - Scalars at root become {"@scalar": ...}.
+ * 		   - Arrays become {"SPECIAL_PREFIX0":..., "SPECIAL_PREFIX1":...}.
+ *		   - Top-level primitives become {"SCALAR_NAME": ...}.
  * 		   - The "/" characters in the keys are replaced with SPECIAL_SLASH.
  * 
  * @note SPECIAL_PREFIX provide unambiguous identification of
- *       converted arrays (@0, @1...) and root scalars (@scalar).
+ *       converted arrays and root scalars.
  *       Caller must json_decref() the result.
  * 
  * @see denormalize_json
@@ -54,7 +54,7 @@ json_t *normalize_json(json_t *root, int is_root);
  * @param root JSON value (result of normalize_json).
  * @return New JSON value in standard polymorphic form:
  * 		   - Objects whose child element keys start with SPECIAL_PREFIX become arrays.
- * 		   - The value with the @scalar key at the root becomes a scalar.
+ * 		   - The value with the SCALAR_NAME key at the root becomes a top-level primitive.
  *		   - The SPECIAL_SLASH in the keys is replaced by the "/" character.
  * 
  * @note Caller must json_decref() the result.
@@ -185,7 +185,7 @@ int is_special_file(const char *path);
  * 
  * @param key JSON key with "/".
  * 
- * @return New key with SPWCIAL_SLASH. The caller must be free.
+ * @return New key with SPECIAL_SLASH. The caller must be free.
  * 
  * @see SPECIAL_SLASH
  * @see normalize_json
