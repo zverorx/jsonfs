@@ -38,29 +38,24 @@
 int main(int argc, char **argv)
 {
 	json_t *root = NULL;
-	json_t *correct_root = NULL;
+	json_t *norm_root = NULL;
 	json_error_t json_error;
 	const char *json_file = NULL;
 	int ret;
 
-	if (argc < 3) { 
-		return EXIT_FAILURE; 
-	}
+	if (argc < 3) { return EXIT_FAILURE; }
 
 	json_file = argv[1];
 
 	root = json_load_file(json_file, JSON_DECODE_ANY, &json_error);
-	CHECK_POINTER(root, EXIT_FAILURE);
+	if (!root) { goto handle_error; }
 
-	correct_root = normalize_json(root, 1);
-	CHECK_POINTER(correct_root, EXIT_FAILURE);
+	norm_root = normalize_json(root, 1);
+	if (!norm_root) { goto handle_error; }
 	json_decref(root);
 
-	struct jsonfs_private_data *pd = init_private_data(correct_root, json_file);
-	if (!pd) {
-		json_decref(correct_root);
-		return EXIT_FAILURE;
-	}
+	struct jsonfs_private_data *pd = init_private_data(norm_root, json_file);
+	if (!pd) { goto handle_error; }
 
 	struct fuse_operations op = get_fuse_op();
 	struct private_args args = get_fuse_args(argc, argv);
@@ -68,4 +63,10 @@ int main(int argc, char **argv)
 	ret = fuse_main(args.fuse_argc, args.fuse_argv, &op, pd);
 	free(args.fuse_argv);
 	return ret;
+
+	handle_error:
+		json_decref(root);
+		json_decref(norm_root); 
+		fputs("jsonfs: failed to initialize filesystem\n", stderr);
+		return EXIT_FAILURE;
 }
