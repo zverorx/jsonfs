@@ -106,10 +106,6 @@ The key is the file name, the value is the file contents.
 The '@' symbol is a special prefix, which means that such a key does not exist in the original JSON file, but it is needed to represent data as a file system, for example, array indexes or a root scalar.
 
 >Full information is provided in the docs directory.
->* docs/user - guide for users,
->* docs/developer - guide for developers.
->
->All guides are available in Russian and English.
 
 ## License
 
