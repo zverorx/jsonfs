@@ -76,13 +76,13 @@ struct fuse_operations get_fuse_op(void);
  * 
  * @param argc Argument count from main().
  * @param argv Argument vector from main().
+ * @param args[out] A struct with adjusted argc/argv.
  * 
- * @return A struct with adjusted argc/argv; caller must free fuse_argv.
+ * @return 0 on success, -1 on failure.
  * 
- * @note If no memory has been allocated inside for fuse_argv, 
- * 		 exit(EXIT_FAILURE) is executed.
+ * @note Caller must free args.fuse_argv.
  */
-struct private_args get_fuse_args(int argc, char **argv);
+int get_fuse_args(int argc, char **argv, struct private_args *args);
 
 /**
  * @brief Creates and initializes a jsonfs_private_data structure.

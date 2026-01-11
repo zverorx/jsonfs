@@ -76,20 +76,23 @@ struct fuse_operations get_fuse_op(void)
 	return op;
 }
 
-struct private_args get_fuse_args(int argc, char **argv)
+int get_fuse_args(int argc, char **argv, struct private_args *args)
 {
-	struct private_args args;
-	args.fuse_argc = argc - 1;
-	args.fuse_argv = calloc(args.fuse_argc, sizeof(char *));
-	if (!args.fuse_argv) {
-		exit(EXIT_FAILURE);
-	}
-	args.fuse_argv[0] = argv[0];
-	for (int i = 2; i < argc; i++) {
-		args.fuse_argv[i - 1] = argv[i];
+	CHECK_POINTER(argv, -1);
+	CHECK_POINTER(args, -1);
+
+	args->fuse_argc = argc - 1;
+	args->fuse_argv = calloc(args->fuse_argc, sizeof(char *));
+	if (!args->fuse_argv) {
+		return -1;
 	}
 
-	return args;
+	args->fuse_argv[0] = argv[0];
+	for (int i = 2; i < argc; i++) {
+		args->fuse_argv[i - 1] = argv[i];
+	}
+
+	return 0;
 }
 
 struct jsonfs_private_data *init_private_data(json_t *json_root, const char *path)
