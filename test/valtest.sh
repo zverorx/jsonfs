@@ -10,9 +10,7 @@ mkdir "$mount_point"
 cd "$test_dir"/..
 make BUILD=debug
 
-valgrind --quiet            \
-         --verbose          \
-         --leak-check=full  \
+valgrind --leak-check=full  \
          "$exec_file" "$json_file" "$mount_point"
 
 
