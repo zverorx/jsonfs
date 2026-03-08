@@ -64,7 +64,7 @@ You have two options:
 ### Download archive:
 
 ```bash
-curl -L -o jsonfs.zip https://github.com/zverorx/jsonfs/archive/refs/tags/latest.zip
+curl -L -o jsonfs.zip https://github.com/zverorx/jsonfs/archive/refs/tags/v1.zip
 ```
 
 ```bash

@@ -27,7 +27,7 @@ You can obtain the source code in one of two ways:
 ### Download the archive:
 
 ```bash
-curl -L -o jsonfs.zip https://github.com/zverorx/jsonfs/archive/refs/tags/latest.zip
+curl -L -o jsonfs.zip https://github.com/zverorx/jsonfs/archive/refs/tags/v1.zip
 ```
 
 ```bash
